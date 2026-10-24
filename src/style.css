@@ -33,13 +33,23 @@ body {
   background: var(--red);
 }
 
-/* The rect's content: 200 % of the rect height (the rect's height is definite, so the percentage resolves). */
+/*
+  The rect's content: AT LEAST 200 % of the rect height (the rect's height is definite, so the percentage resolves).
+  min-height, not height: if the content is taller than 200 % it grows instead of overflowing, so everything stays
+  inside its background and inside the scrollable area.
+*/
 .content {
   position: relative;
   box-sizing: border-box;
-  height: 200%;
-  /* Below the status bar inset; clear of notch sides and home indicator. */
+  min-height: 200%;
+  /* Below the status bar inset; clear of notch sides. The bottom padding keeps the last content scrollable ABOVE the
+     fixed footer (see below). */
   padding: calc(var(--sat) + 12px) max(12px, var(--sar)) calc(var(--sab) + 12px) max(12px, var(--sal));
+}
+/* A fixed footer covers the bottom of the viewport: reserve its full height (incl. safe-area padding) at the end of the
+   scrollable content, otherwise the last content can never be scrolled out from behind it. */
+html:not([data-bar='off']) .content {
+  padding-bottom: calc(var(--bar-total, var(--sab)) + 12px);
 }
 .content > .panel {
   z-index: 1;

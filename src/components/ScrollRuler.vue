@@ -1,19 +1,20 @@
 <script setup lang="ts">
 // Ruler in the right gutter of the 200 % tall content: a short tick every 10 % of the rect height.
 // `fullWidthLines` adds a full-width line every 50 % (inner-scroll view only).
-defineProps<{ fullWidthLines?: boolean }>()
+// The ticks are positioned in px from the rect's height, not in % of the content: the content may be taller than 200 %.
+defineProps<{ fullWidthLines?: boolean; rectHeight: number | null }>()
 
 const ticks = Array.from({ length: 20 }, (_, i) => (i + 1) * 10)
 </script>
 
 <template>
-  <div class="ruler" aria-hidden="true">
+  <div v-if="rectHeight" class="ruler" aria-hidden="true">
     <div
       v-for="t in ticks"
       :key="t"
       class="tick"
       :class="{ major: fullWidthLines && t % 50 === 0 }"
-      :style="{ bottom: `${100 - t / 2}%` }"
+      :style="{ top: `${(t / 100) * rectHeight}px` }"
     >
       <span>{{ t }}%</span>
     </div>
@@ -30,6 +31,7 @@ const ticks = Array.from({ length: 20 }, (_, i) => (i + 1) * 10)
 .tick {
   position: absolute;
   right: 0;
+  transform: translateY(-100%);
   width: calc(var(--sar) + 30px);
   border-bottom: 1px solid rgb(255 255 255 / 0.8);
 }

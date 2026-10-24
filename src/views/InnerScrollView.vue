@@ -43,7 +43,7 @@ const { mode, blurShield, barMode, statusBar } = useSettings('inner', measure)
           :events="events"
           :last-event="lastEvent"
         />
-        <ScrollRuler full-width-lines />
+        <ScrollRuler full-width-lines :rect-height="metrics?.rect?.height ?? null" />
       </div>
     </div>
     <EdgeOverlay :metrics="metrics" />

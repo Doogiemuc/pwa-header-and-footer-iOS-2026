@@ -98,6 +98,7 @@ export interface Metrics {
     scrollHeight: number
     clientHeight: number
     contentHeight: number
+    contentPaddingBottom: number
   } | null
   bar: { top: number; bottom: number; height: number } | null
   overflow: { html: string; body: string }
@@ -292,6 +293,7 @@ export function useViewportMetrics(
               scrollHeight: scroller.scrollHeight,
               clientHeight: scroller.clientHeight,
               contentHeight: content.getBoundingClientRect().height,
+              contentPaddingBottom: parseFloat(getComputedStyle(content).paddingBottom),
             }
           : null,
       bar: bar ? { top: bar.top, bottom: bar.bottom, height: bar.height } : null,

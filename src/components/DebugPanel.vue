@@ -73,7 +73,9 @@ const sections = computed<Section[]>(() => {
     value: v == null ? 'not supported' : px(v),
     status: v != null && near(v, m.window.innerHeight) ? 'ok' : 'info',
   })
-  const contentOk = r ? near(r.contentHeight, 2 * r.height) && near(r.scrollHeight, 2 * r.height) : false
+  // The content is at least 200 % of the rect; it grows beyond that when the debug panel is taller (never overflows).
+  const contentIs200 = r ? near(r.contentHeight, 2 * r.height) : false
+  const contentGrew = r ? r.contentHeight > 2 * r.height + TOLERANCE : false
 
   const all: Section[] = [
     {
@@ -124,8 +126,8 @@ const sections = computed<Section[]>(() => {
             pageMode.value
               ? {
                   label: 'document scroll range',
-                  value: `${px(docOverflow)} (expected ≈ ${px(r.height)}: 200% content − 100%)`,
-                  status: near(docOverflow, r.height) ? 'ok' : 'bad',
+                  value: `${px(docOverflow)} (expected ≈ ${px(r.contentHeight - m.window.clientHeight)}: content − viewport)`,
+                  status: near(docOverflow, r.contentHeight - m.window.clientHeight) ? 'ok' : 'bad',
                 }
               : {
                   label: 'page scrollable by',
@@ -134,10 +136,10 @@ const sections = computed<Section[]>(() => {
                 },
             {
               label: 'content / rect',
-              value: contentOk
-                ? `${+((r.contentHeight / r.height) * 100).toFixed(1)}% (${px(r.contentHeight)})`
-                : `scrollHeight ${px(r.scrollHeight)} ≠ 200% — debug panel too tall, collapse sections`,
-              status: contentOk ? 'ok' : 'bad',
+              value: `${+((r.contentHeight / r.height) * 100).toFixed(1)}% (${px(r.contentHeight)})${
+                contentGrew ? ' — grew: the panel is taller than 200%, all of it stays reachable' : ''
+              }`,
+              status: contentIs200 ? 'ok' : contentGrew ? 'info' : 'bad',
             },
           ]
         : [],
@@ -202,6 +204,15 @@ const sections = computed<Section[]>(() => {
         ? [
             { label: 'strategy', value: `${BAR_MODES[barMode.value].label}: ${BAR_MODES[barMode.value].description}` },
             { label: 'bar top / bottom', value: `${px(bar.top)} / ${px(bar.bottom)}` },
+            ...(r
+              ? [
+                  {
+                    label: 'scroll end clearance',
+                    value: `content padding-bottom ${px(r.contentPaddingBottom)} vs bar ${px(bar.height)}`,
+                    status: (r.contentPaddingBottom >= bar.height ? 'ok' : 'bad') as Status,
+                  },
+                ]
+              : []),
             {
               label: 'bar height',
               value: `${px(bar.height)} = 56px + ${px(m.safeArea.bottom)} inset (padding)`,

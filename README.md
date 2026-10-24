@@ -4,7 +4,8 @@ One job: a **red rectangle that is exactly as high as the screen**, with live de
 measurement that influences "screen height" on mobile — especially iOS Safari, Firefox on iOS and
 iOS Home Screen web apps (including the iOS 27 top blur).
 
-The content inside the rectangle is **200 %** of its height and scrolls (ruler on the right).
+The content inside the rectangle is **at least 200 %** of its height (exactly 200 % while the debug panel is shorter, it grows when the
+panel is taller) and scrolls (ruler on the right; its ticks are multiples of the rect height, not percentages of the content).
 Two pages, one per scroll behaviour (the panel links between them and keeps the settings):
 
 | Page | URL | Who scrolls | DOM |
@@ -46,8 +47,14 @@ scrolling away. Old links with `?scroll=inner` on `/` redirect to `/inner.html`.
    * Firefox on iOS: footer is placed correctly and jumps to the very bottom while scrolling (acceptable). **[device]**
      Firefox reports `safe-area-inset-bottom` = 34px (Safari reports 0), so without the padding the screen's rounded corners cut
      off the footer corners. The padding fix is implemented. **[untested]** on the phone since the fix.
-5. Give the page content `padding-bottom: calc(var(--footer-h) + env(safe-area-inset-bottom))` so the last content isn't hidden
-   behind the footer. **[untested]** (the POC content is test filler, it doesn't do this).
+5. **Reserve the footer's height at the end of the scrollable content**: `padding-bottom: calc(var(--footer-h) + env(safe-area-inset-bottom))`
+   on the content (the POC: `html:not([data-bar='off']) .content` in `src/style.css`). Without it the last content can never be
+   scrolled out from behind the fixed footer: in the POC the last two debug boxes were completely hidden at maximum scroll.
+   Checked in a desktop browser emulating 402×710 (nothing behind the footer, 18px gap above it). **[untested]** on the phone.
+6. **Content that must be at least N tall: use `min-height`, not `height`.** The POC's `.content` was `height: 200%`; when the debug
+   panel got taller than that, its boxes overflowed the content box and drew over the bare `html` background (that was the red
+   band below the grey area at the bottom of `/`) while the document grew past 200 %. With `min-height: 200%` the content
+   grows with its children, its background always covers everything, and the scroll end is the real end.
 
 ### Device facts (iPhone 16 Pro, 402×874 @3x, iOS 27.0.1)
 

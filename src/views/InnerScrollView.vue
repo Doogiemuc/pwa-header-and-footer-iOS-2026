@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import BlurShield from '../components/BlurShield.vue'
+import BottomBar from '../components/BottomBar.vue'
 import DebugPanel from '../components/DebugPanel.vue'
 import EdgeOverlay from '../components/EdgeOverlay.vue'
 import ScrollRuler from '../components/ScrollRuler.vue'
@@ -13,26 +14,30 @@ import { detectEnvironment } from '../lib/environment'
  * never scrolls and the Safari toolbars keep their size. Structure:
  *   main.screen (rect, clips)  >  div.scroller (the scroll container)  >  div.content (200 % of the rect)
  * The scroller is separate from the rect only so that the EdgeOverlay stays pinned to the rect's edges instead of
- * scrolling away with the content.
+ * scrolling away with the content. Like the page view it has the fixed blue bottom bar (the future footer).
  */
 const env = detectEnvironment()
 
 const rectEl = ref<HTMLElement | null>(null)
 const scrollerEl = ref<HTMLElement | null>(null)
 const contentEl = ref<HTMLElement | null>(null)
-const noBar = ref<HTMLElement | null>(null) // this view has no bottom bar
-const { metrics, events, lastEvent, measure } = useViewportMetrics(rectEl, scrollerEl, contentEl, noBar)
-const { mode, blurShield } = useSettings('inner', measure)
+const bar = ref<{ $el: HTMLElement } | null>(null)
+const barEl = computed(() => bar.value?.$el ?? null)
+const { metrics, events, lastEvent, measure } = useViewportMetrics(rectEl, scrollerEl, contentEl, barEl)
+const { mode, blurShield, barMode, statusBar } = useSettings('inner', measure)
 </script>
 
 <template>
   <main ref="rectEl" class="screen">
     <div ref="scrollerEl" class="scroller">
       <div ref="contentEl" class="content">
+        <h1 class="page-title">Inner DIV scrolls</h1>
         <DebugPanel
           view="inner"
           v-model:mode="mode"
           v-model:blur-shield="blurShield"
+          v-model:status-bar="statusBar"
+          v-model:bar-mode="barMode"
           :env="env"
           :metrics="metrics"
           :events="events"
@@ -45,6 +50,7 @@ const { mode, blurShield } = useSettings('inner', measure)
   </main>
 
   <BlurShield v-if="blurShield" />
+  <BottomBar v-if="barMode !== 'off'" ref="bar" :metrics="metrics" :bar-mode="barMode" />
 </template>
 
 <style scoped>

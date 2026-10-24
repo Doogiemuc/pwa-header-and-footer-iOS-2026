@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { STATUS_BAR_STYLES, type StatusBarStyle } from '../composables/useSettings'
 import { BAR_MODES, HEIGHT_MODES, type BarMode, type HeightMode, type Metrics } from '../composables/useViewportMetrics'
 import type { EnvInfo } from '../lib/environment'
 
@@ -25,7 +26,8 @@ const props = defineProps<{
 }>()
 const mode = defineModel<HeightMode>('mode', { required: true })
 const blurShield = defineModel<boolean>('blurShield', { required: true })
-// Only the page view has the bottom bar.
+const statusBar = defineModel<StatusBarStyle>('statusBar', { default: 'black-translucent' })
+// Bottom bar strategy (both views have the bar).
 const barMode = defineModel<BarMode>('barMode', { default: 'bottom0' })
 
 const TOLERANCE = 1 // px – unit values can be fractional (e.g. 873.67)
@@ -34,10 +36,10 @@ const px = (n: number | null | undefined) => (n == null || Number.isNaN(n) ? 'n/
 const size = (w: number, h: number) => `${+w.toFixed(2)} × ${+h.toFixed(2)}`
 const near = (a: number, b: number) => Math.abs(a - b) < TOLERANCE
 const signed = (n: number) => `${n > 0 ? '+' : ''}${+n.toFixed(2)}px`
-// Summary box and bottom bar exist in the page view only; the inner view keeps the original wording and layout.
+// The Summary box exists in the page view only; the inner view keeps the original wording and layout.
 const pageMode = computed(() => props.view === 'page')
 const displayLabel = (d: string) => (pageMode.value && d === 'standalone' ? 'home screen app' : d)
-const PAGE_ONLY_SECTIONS = ['Summary', 'Blue bottom bar (above the Safari controls)']
+const PAGE_ONLY_SECTIONS = ['Summary']
 const yesNo = (b: boolean | undefined) => (b === undefined ? 'undefined' : b ? 'yes' : 'no')
 
 const verdict = computed(() => {
@@ -151,6 +153,7 @@ const sections = computed<Section[]>(() => {
         { label: 'display-mode', value: displayLabel(e.displayMode) },
         { label: 'nav.standalone', value: yesNo(e.navigatorStandalone) },
         { label: 'Home Screen app', value: yesNo(e.isHomeScreenApp), status: e.isHomeScreenApp ? 'ok' : 'info' },
+        { label: 'status-bar-style meta', value: `${statusBar.value} (iOS reads it when the icon is added)` },
         { label: 'platform / touch', value: `${e.platform} / ${e.maxTouchPoints}${e.isIPadDesktopUA ? ' (iPad, desktop UA)' : ''}` },
         { label: 'user agent', value: e.userAgent },
       ],
@@ -293,7 +296,7 @@ const sections = computed<Section[]>(() => {
   return pageMode.value ? all : all.filter((sec) => !PAGE_ONLY_SECTIONS.includes(sec.title))
 })
 
-// The two views are two pages; the links keep the shared settings (the bottom bar strategy only exists in the page view).
+// The two views are two pages; the links keep the shared settings.
 const heightModes = computed(
   () =>
     Object.entries(HEIGHT_MODES).filter(([key]) => pageMode.value || key !== 'fixed') as [
@@ -313,7 +316,7 @@ const copyState = ref('Copy JSON')
 async function copyJson() {
   const text = JSON.stringify(
     {
-      settings: { view: props.view, mode: mode.value, blurShield: blurShield.value, bar: pageMode.value ? barMode.value : null },
+      settings: { view: props.view, mode: mode.value, blurShield: blurShield.value, statusBarStyle: statusBar.value, bar: barMode.value },
       env: props.env,
       metrics: props.metrics,
       events: props.events,
@@ -364,7 +367,17 @@ function reload() {
         <strong v-if="!pageMode">rect scrolls inside (blue bg)</strong>
         <a v-else :href="viewHref('inner.html')">rect scrolls inside (blue bg)</a>
       </nav>
-      <label v-if="pageMode" class="check">
+      <label class="check">
+        status bar
+        <select v-model="statusBar" aria-label="Status bar style">
+          <option v-for="s in STATUS_BAR_STYLES" :key="s" :value="s">{{ s }}</option>
+        </select>
+      </label>
+      <small>
+        apple-mobile-web-app-status-bar-style: iOS only reads it when the icon is added to the Home Screen: pick a value,
+        delete the old icon, add it again (the URL keeps the choice, the icon launches without it). No effect in a Safari tab.
+      </small>
+      <label class="check">
         blue bar
         <select v-model="barMode" aria-label="Blue bottom bar strategy">
           <option v-for="(b, key) in BAR_MODES" :key="key" :value="key">{{ b.label }}</option>
@@ -377,6 +390,10 @@ function reload() {
       <small class="legend">
         <template v-if="!pageMode"><span class="swatch gap"></span>blue = NOT covered by rect · </template><span class="swatch edge"></span>rect edges ·
         <span class="swatch safe"></span>safe area
+        <template v-if="pageMode">
+          · <span class="swatch" style="background: red"></span>html bg · <span class="swatch" style="background: darkred"></span>theme-color
+          · <span class="swatch" style="background: darkgrey"></span>.content
+        </template>
       </small>
     </div>
 

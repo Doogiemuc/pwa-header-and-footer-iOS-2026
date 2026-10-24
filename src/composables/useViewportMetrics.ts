@@ -200,7 +200,7 @@ export function useViewportMetrics(
   rectEl: Ref<HTMLElement | null>,
   scrollerEl: Ref<HTMLElement | null>,
   contentEl: Ref<HTMLElement | null>,
-  barEl: Ref<HTMLElement | null>,
+  barEl: Readonly<Ref<HTMLElement | null>>,
 ) {
   const metrics = shallowRef<Metrics | null>(null)
   const events = reactive<Record<string, number>>({})

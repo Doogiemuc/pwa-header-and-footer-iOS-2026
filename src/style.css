@@ -45,6 +45,15 @@ body {
   z-index: 1;
 }
 
+/* Large title at the top of each page, so screenshots show which version is which. */
+.page-title {
+  position: relative;
+  z-index: 1;
+  margin: 0 30px 10px 0; /* right gutter: the scroll ruler */
+  font: 800 34px/1.1 system-ui, -apple-system, sans-serif;
+  letter-spacing: -0.5px;
+}
+
 /* ---------- height strategies (html[data-height-mode]) ---------- */
 
 [data-height-mode='dvh'] .screen {

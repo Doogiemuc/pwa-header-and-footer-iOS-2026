@@ -10,7 +10,7 @@ Two pages, one per scroll behaviour (the panel links between them and keeps the 
 | Page | URL | Who scrolls | DOM |
 | --- | --- | --- | --- |
 | **page scrolls** | `/` (`index.html`) | the document (native iOS top fade, Safari toolbars collapse) | `main.screen` › `div.content` (+ fixed footer) |
-| **rect scrolls inside** | `/inner.html` | the rectangle itself (document never scrolls, toolbars keep their size) | `main.screen` › `div.scroller` › `div.content` |
+| **rect scrolls inside** | `/inner.html` | the rectangle itself (document never scrolls, toolbars keep their size) | `main.screen` › `div.scroller` › `div.content` (+ fixed footer) |
 
 The extra `scroller` layer in the inner page exists only so the yellow edge overlay stays pinned to the rectangle instead of
 scrolling away. Old links with `?scroll=inner` on `/` redirect to `/inner.html`.
@@ -84,6 +84,10 @@ scrolling away. Old links with `?scroll=inner` on `/` redirect to `/inner.html`.
 
 ### Still to test (update as we go)
 
+- [ ] Layer-colour test on `/` (Safari tab, Firefox, Home Screen): which colour shows where (status bar area, behind the toolbars,
+  overscroll, under the footer); does `theme-color` darkred differ visibly from the red `html` background, and in which case?
+- [ ] `apple-mobile-web-app-status-bar-style` `default` / `black` / `black-translucent` in the Home Screen app (re-add the icon each time):
+  top inset, content under the status bar, colour of the bar.
 - [ ] Firefox on iOS: footer after the 34px padding fix; record `innerHeight` / units / insets (Copy JSON).
 - [ ] Safari Home Screen app (standalone): top / bottom insets, does the footer sit on the home indicator, top blur, status bar.
 - [ ] Firefox Home Screen app.
@@ -99,6 +103,11 @@ npm run build      # type-check + production build into dist/
 npm run preview    # serve dist/ on the LAN
 ```
 
+> **iOS Safari caches very aggressively** (HTML, JS, CSS, manifest, icons, even with the dev server). A normal reload often does
+> *not* show code changes. To really get the latest version, open the URL in a **new private tab/window** (it starts without any
+> cache). The panel's *Reload* button is not enough. For a Home Screen app, delete the icon and add it again (also needed for the
+> status-bar style). When a measured value looks like "the old code", suspect the cache first.
+
 Phone and Mac must be on the same Wi-Fi. Use the `Network:` URL Vite prints (e.g. `http://192.168.x.x:5173`).
 
 ### Test matrix
@@ -110,6 +119,14 @@ Phone and Mac must be on the same Wi-Fi. Use the `Network:` URL Vite prints (e.g
 | Home Screen app | Safari or Firefox → Share → *Add to Home Screen* (iOS 26+: keep *Open as Web App* on) → start from the icon |
 
 `apple-mobile-web-app-status-bar-style` is only read when the icon is added: after changing it, delete and re-add the icon.
+The panel has a **status bar** select (`black-translucent` (default), `default`, `black`; URL `?sb=`) that rewrites the live
+`<meta>`; pick a value, then add the icon. The launched icon doesn't carry the URL, so the panel shows the *selected* value, not
+necessarily what the installed icon was created with.
+
+**Layer-colour test** (`/` only): `html` background red, `<meta name="theme-color" content="darkred">` (normally it would equal the
+background; deliberately different to see where it shows), `.content` dark grey (covers the whole document, so no red should be
+visible inside it). The web manifest uses `background_color: red` / `theme_color: darkred` to match. `/inner.html` has no `theme-color`
+and no `.content` colour.
 
 ## How to read the screen
 
@@ -123,21 +140,20 @@ Phone and Mac must be on the same Wi-Fi. Use the `Network:` URL Vite prints (e.g
 Settings are kept in the URL (`?h=dvh&shield=1`, plus `&bar=bottom0` on `/`), so *Reload* (there is no reload button in a
 Home Screen app) keeps them. *Copy JSON* copies all values for comparing devices.
 
-## Extras on the page-scroll page (`/`)
+## Blue bottom bar (both pages) and Summary box (`/` only)
 
-Only on `/` (`/inner.html` has none of this):
-
-* **Summary** box at the top: browser, iOS major, display-mode (`standalone` is shown as "home screen app"),
+* **Summary** box at the top (`/` only): browser, iOS major, display-mode (`standalone` is shown as "home screen app"),
   `window.scrollY`, `visualViewport.scale` (yellow alert when zoomed).
-* **Blue bar** (56px, `position: fixed`): where a fixed bottom footer has to sit, exactly above the floating Safari
-  controls, which shrink while scrolling. Strategies (select `blue bar`, URL `?bar=`):
+* **Blue bar** (56px, `position: fixed`, component `BottomBar.vue`, on **both** pages): where a fixed bottom footer has to sit,
+  exactly above the floating Safari controls, which shrink while scrolling. Its label doubles as a status line (bar bottom,
+  `100dvh`, `innerHeight`). Strategies (select `blue bar`, URL `?bar=`):
   `bottom0` (default: plain CSS `position: fixed; bottom: 0`, placed by the browser, no JS), `dvh`
   (`top: calc(100dvh - 56px)`) and `js` (`visualViewport.offsetTop + height`, written every frame; both run on the main
   thread and visibly lag/jump while the toolbar animates), `off`. The "Blue bottom bar" section shows bar bottom minus `100dvh`,
   `visualViewport` and `innerHeight`: ✓ = the bar ends exactly at the visible bottom edge.
 * The bar's height is `56px + env(safe-area-inset-bottom)`; the inset is **padding**, so the blue background fills the area
   under the home indicator / rounded screen corners (Firefox on iOS reports 34px, Safari 0px). The label stays in the 56px above it.
-* The full-width grey lines in the ruler are not drawn.
+* The full-width grey lines in the ruler are not drawn on `/` (they are on `/inner.html`).
 
 ## Height strategies (select in the panel)
 
@@ -192,10 +208,11 @@ Sources: [grappa-irc#2190](https://github.com/vjt/grappa-irc/issues/2190) (measu
 
 * `index.html` + `src/main-page.ts` + `src/views/PageScrollView.vue`: the **page scrolls** page (rectangle, content, blue bottom bar and its CSS)
 * `inner.html` + `src/main-inner.ts` + `src/views/InnerScrollView.vue`: the **rect scrolls inside** page
-* `src/components/`: `ScrollRuler`, `EdgeOverlay`, `BlurShield` (shared by both pages)
+* `src/components/`: `ScrollRuler`, `EdgeOverlay`, `BlurShield`, `BottomBar` (shared by both pages)
 * `src/composables/useSettings.ts`: URL-persisted settings (height mode, blur shield, bar strategy)
 * `src/components/DebugPanel.vue`: verdict, settings, debug tables
 * `src/composables/useViewportMetrics.ts`: all measurements, height modes
 * `src/lib/environment.ts`: browser / iOS version / Home Screen detection, model guess
+* `public/manifest.webmanifest`: Home Screen app manifest (colours follow the layer test)
 * `src/style.css`: shared safe-area variables, `.screen` / `.content`, height-mode rules (view-specific CSS lives in the views)
 * `scripts/make-icons.mjs`: generates the PNG icons (`npm run icons`)

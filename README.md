@@ -13,10 +13,7 @@ Two pages, one per scroll behaviour (the panel links between them and keeps the 
 | **page scrolls** | `/` (`index.html`) | the document (native iOS top fade, Safari toolbars collapse) | `main.screen` › `div.content` (+ fixed footer) |
 | **rect scrolls inside** | `/inner.html` | the rectangle itself (document never scrolls, toolbars keep their size) | `main.screen` › `div.scroller` › `div.content` (+ fixed footer) |
 
-A **round white button at the top right** (`ViewSwitch.vue`, fixed, 44px) on both pages links to the other page and keeps the settings in the URL.
-**Watch the iOS top blur** after this change: it is a `position: fixed` element at the top edge, and the blur height depends on such things
-(compare with `git diff v1.0`, which has no such button).
-
+A **round white button at the top right, 100px below the top** (`ViewSwitch.vue`, fixed, 44px) on both pages links to the other page and keeps the settings in the URL.
 The extra `scroller` layer in the inner page exists only so the yellow edge overlay stays pinned to the rectangle instead of
 scrolling away. Old links with `?scroll=inner` on `/` redirect to `/inner.html`.
 
@@ -32,7 +29,7 @@ scrolling away. Old links with `?scroll=inner` on `/` redirect to `/inner.html`.
 1. `<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">`.
 2. **Let the document scroll.** No inner scroll container, no `overflow: hidden` on `html`/`body`. Then the iOS 27 top fade
    works natively: content fades out behind the clock / Wi-Fi / battery. **[device]**
-3. **`html` background = the colour that should appear under the status bar** (here red). Safari 26+ fills that area from the
+3. **`html` background = the colour that should appear under the status bar** (red in `v1.0`, white now). Safari 26+ fills that area from the
    page background. In the first version `html` and `theme-color` were blue and that blue showed as a bar at the top while the
    red content scrolled "under" it; after making `html` red and removing `theme-color` the bar was gone. **[device]**
    (We changed both at once, so we don't know which of the two was the cause.) Don't set `theme-color` unless you want the tint.
@@ -74,6 +71,9 @@ scrolling away. Old links with `?scroll=inner` on `/` redirect to `/inner.html`.
 * `100vh`/`lvh` is **38px taller than the visible area** while the controls are expanded: don't size layouts with it.
 * `viewport-fit=cover` did not give Safari a non-zero top inset: the layout viewport starts below the status bar; the area behind
   it is only filled with the page background (and shows scrolled content when the document scrolls).
+* **The part at the top behind the iOS blur (the status bar zone above the document) shows the colour of our page background, i.e. the
+  `html` background (the canvas).** **[device]** In `v1.0` it was red, so the blur sat over red; the document's own `.content` colour
+  does not reach there. Set `html` to the colour you want behind the blur. (`theme-color`, darkred here, was not what the owner saw there.)
 * While the toolbar animates, `resize` / `scroll` / `visualViewport.resize` fire hundreds of times (a test session logged 609
   scroll events). Never run expensive work (e.g. `matchMedia` searches, layout reads) per event.
 
@@ -88,11 +88,12 @@ scrolling away. Old links with `?scroll=inner` on `/` redirect to `/inner.html`.
 * iOS version from the UA: Safari 26+ freezes the OS token (`18_7`); the real version is in `Version/x`. Use `max(OS, Version)`.
   Firefox/Chrome on iOS have no `Version` token.
 * **Reference version = git tag `v1.0`** (commit `089e533`, `/` "Full Page scrolls"): on the owner's iPhone 16 Pro (iOS 27.0.1, Safari)
-  it shows only a **small top blur, as high as the top iOS controls**: exactly the wanted behaviour. **[device]** The owner saw
-  *different* blur heights in other versions of this POC, so the blur height depends on the page's structure/CSS. If the blur ever
-  looks bigger, `git diff v1.0` is the first thing to look at. (We don't yet know which of the differences matters.)
+  it shows only a **small top blur, as high as the top iOS controls**: exactly the wanted behaviour. **[device]**
+  **The larger blur appears only when the page is added to the Home Screen** (installed web app), not in a Safari/Firefox tab. **[device]**
+  So the "different blur heights" seen while building this POC were largely Safari tab vs Home Screen app, not the page's CSS.
+  (Whether some CSS change also affects the blur height in a tab was not separated.)
 * The iOS 27.0.1 top blur is much smaller than early reports (62px inset + 38px veil, home-screen app **[sources]**): no extra top
-  clearance is needed in Safari. **[device]** The optional "blur shield" strip is unnecessary there.
+  clearance is needed in a Safari tab. **[device]** No top bar / strip / blur workaround is used any more (the "blur shield" experiment was removed).
 * Reference site (`de.ra.co`, analysed read-only): page scroll, **fixed 60px header** (`position: fixed; top: 0`) plus a sticky stack
   below it with hard-coded px `top` values, **no fixed footer**, no `viewport-fit=cover`, no `env(safe-area-inset-*)`, no
   `dvh/svh/lvh`, `theme-color=#000` with a black header. It avoids the whole bottom-edge problem by having nothing at the bottom.
@@ -100,7 +101,7 @@ scrolling away. Old links with `?scroll=inner` on `/` redirect to `/inner.html`.
 ### Still to test (update as we go)
 
 - [ ] Layer-colour test on `/` (Safari tab, Firefox, Home Screen): which colour shows where (status bar area, behind the toolbars,
-  overscroll, under the footer); does `theme-color` darkred differ visibly from the red `html` background, and in which case?
+  overscroll, under the footer); does `theme-color` darkred differ visibly from the `html` background, and in which case?
 - [ ] `apple-mobile-web-app-status-bar-style` `default` / `black` / `black-translucent` in the Home Screen app (re-add the icon each time):
   top inset, content under the status bar, colour of the bar.
 - [ ] Firefox on iOS: footer after the 34px padding fix; record `innerHeight` / units / insets (Copy JSON).
@@ -146,20 +147,24 @@ reference, which documents only `viewport`, `format-detection`, `apple-mobile-we
 and are marked as such; the box also lists the `apple-touch-icon` and `manifest` links.
 
 **Layer-colour test**: `<meta name="theme-color" content="darkred">` on **both** pages (normally it would equal the page background;
-deliberately different to see where it shows). On `/` additionally `html` background red and `.content` dark grey (covers the whole document,
-so no red should be visible inside it); `/inner.html` keeps its blue page background and has no `.content` colour. The web manifest uses
+deliberately different to see where it shows). On `/` additionally `html` background **white** and `.content` **white** (it covers the whole
+document; the red rectangle is hidden below it; in `v1.0` they were red / dark grey). The debug boxes are opaque grey (`--box-bg`, the colour they had on the dark
+grey) and ruler lines, labels, title and safe-area guides are black on `/`. `/inner.html` keeps its blue page background, translucent boxes and white text. The web manifest uses
 `background_color: red` / `theme_color: darkred` to match.
 
 ## How to read the screen
 
-* **Blue** (`/inner.html` only; on `/` the page background is red) = page background. Any blue you see is area the
+* **Blue** (`/inner.html` only; on `/` the page background is white) = page background. Any blue you see is area the
   red rectangle does **not** cover (also visible during rubber-band overscroll). `theme-color` is `darkred` on both pages (layer test, see above).
 * **Yellow lines** = top and bottom edge of the rectangle.
+* **Yellow line with the label "footer top at scroll 0"** (`FooterLine.vue`, both pages): sits exactly on the footer's top edge while the page is
+  not scrolled; it belongs to the scrolling content, so it scrolls away while the fixed footer stays, showing how far the page moved.
+  Its position is `rect height − footer height (incl. safe-area padding)`, i.e. it follows `100dvh` when the Safari toolbar changes the visible height.
 * **White dashed lines** = `env(safe-area-inset-top / -bottom)`.
 * **Verdict** box: rect height vs `innerHeight`, `visualViewport.height` and screen height, rect top/bottom,
   whether the page can scroll (rect too tall), and whether the content really is 200 %.
 
-Settings are kept in the URL (`?h=dvh&shield=1`, plus `&bar=bottom0` on `/`), so *Reload* (there is no reload button in a
+Settings are kept in the URL (`?h=dvh&sb=black-translucent&bar=bottom0`), so *Reload* (there is no reload button in a
 Home Screen app) keeps them. *Copy JSON* copies all values for comparing devices.
 
 ## Summary box and blue bottom bar (both pages)
@@ -174,6 +179,8 @@ Home Screen app) keeps them. *Copy JSON* copies all values for comparing devices
   (`top: calc(100dvh - 56px)`) and `js` (`visualViewport.offsetTop + height`, written every frame; both run on the main
   thread and visibly lag/jump while the toolbar animates), `off`. The "Blue bottom bar" section shows bar bottom minus `100dvh`,
   `visualViewport` and `innerHeight`: ✓ = the bar ends exactly at the visible bottom edge.
+* A **dashed white line inside the footer** marks where the safe-area padding starts (everything below it is `env(safe-area-inset-bottom)`);
+  the footer's third text line shows the measured inset. With an inset of 0 (Safari) the dashed line is the footer's bottom edge.
 * The bar's height is `56px + env(safe-area-inset-bottom)`; the inset is **padding**, so the blue background fills the area
   under the home indicator / rounded screen corners (Firefox on iOS reports 34px, Safari 0px). The label stays in the 56px above it.
 * The full-width grey lines in the ruler are not drawn on `/` (they are on `/inner.html`).
@@ -217,10 +224,8 @@ veil fades out at about 100px. **iOS 27.0.1 on an iPhone 16 Pro (tested in Safar
 fades above the top edge of the rectangle, under the system bar.** So no extra clearance is reserved any more: content
 starts at `safe-area-inset-top` + 12px.
 
-* **Blur shield** (checkbox, off by default): a `position: fixed` 12px strip at the very top. WebKit hides the top
-  blur when a fixed/sticky box with a background, ≥ ~90 % wide and > 10px tall, sits at the top edge. The strip is a
-  darker red, so it can never hide a gap in the rectangle. Not verified by Apple, so test it on the device.
-* Side effect worth knowing: in `fixed` height mode the rectangle itself is such a box.
+* The "blur shield" experiment (a fixed, wide strip at the top that WebKit reportedly treats as the colour source and which should hide the
+  blur) was tried and **removed again**: no UI workaround for the blur is used. Mind that the larger blur is a Home Screen app thing.
 * The iOS setting *Reduce Transparency* removes the veil; the panel shows `prefers-reduced-transparency` where supported.
 
 Sources: [grappa-irc#2190](https://github.com/vjt/grappa-irc/issues/2190) (measurements),
@@ -231,8 +236,8 @@ Sources: [grappa-irc#2190](https://github.com/vjt/grappa-irc/issues/2190) (measu
 
 * `index.html` + `src/main-page.ts` + `src/views/PageScrollView.vue`: the **page scrolls** page (rectangle, content, blue bottom bar and its CSS)
 * `inner.html` + `src/main-inner.ts` + `src/views/InnerScrollView.vue`: the **rect scrolls inside** page
-* `src/components/`: `ScrollRuler`, `EdgeOverlay`, `BlurShield`, `BottomBar`, `ViewSwitch` (shared by both pages); `src/lib/viewLinks.ts`: link to the other page
-* `src/composables/useSettings.ts`: URL-persisted settings (height mode, blur shield, bar strategy)
+* `src/components/`: `ScrollRuler`, `EdgeOverlay`, `FooterLine`, `BottomBar`, `ViewSwitch` (shared by both pages); `src/lib/viewLinks.ts`: link to the other page
+* `src/composables/useSettings.ts`: URL-persisted settings (height mode, status-bar style, bar strategy)
 * `src/components/DebugPanel.vue`: verdict, settings, debug tables
 * `src/composables/useViewportMetrics.ts`: all measurements, height modes
 * `src/lib/environment.ts`: browser / iOS version / Home Screen detection, model guess

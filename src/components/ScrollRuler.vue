@@ -33,7 +33,7 @@ const ticks = Array.from({ length: 20 }, (_, i) => (i + 1) * 10)
   right: 0;
   transform: translateY(-100%);
   width: calc(var(--sar) + 30px);
-  border-bottom: 1px solid rgb(255 255 255 / 0.8);
+  border-bottom: 1px solid var(--ruler, rgb(255 255 255 / 0.8));
 }
 .tick.major {
   width: 100%;
@@ -44,5 +44,6 @@ const ticks = Array.from({ length: 20 }, (_, i) => (i + 1) * 10)
   right: max(3px, var(--sar));
   bottom: 2px;
   font: 700 9px/1 ui-monospace, Menlo, monospace;
+  color: var(--ruler, #fff);
 }
 </style>

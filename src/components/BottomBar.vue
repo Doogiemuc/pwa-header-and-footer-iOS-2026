@@ -13,6 +13,9 @@ defineProps<{ metrics: Metrics | null; barMode: BarMode }>()
       bar bottom {{ +metrics.bar.bottom.toFixed(1) }}px · 100dvh {{ +metrics.units.dvh.toFixed(1) }}px · innerHeight
       {{ metrics.window.innerHeight }}px
     </span>
+    <span v-if="metrics">safe-area-inset-bottom {{ metrics.safeArea.bottom }}px (below dashed)</span>
+    <!-- Start of the safe-area padding: everything below this line is env(safe-area-inset-bottom). -->
+    <i class="safe-line"></i>
   </footer>
 </template>
 
@@ -44,6 +47,14 @@ defineProps<{ metrics: Metrics | null; barMode: BarMode }>()
   border-top: 2px solid #fff;
   font: 11px/1.3 ui-monospace, Menlo, monospace;
   pointer-events: none;
+}
+
+.safe-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--sab);
+  border-top: 1px dashed #fff;
 }
 
 /* Strategies for the bar's vertical position (html[data-bar], see BAR_MODES). Only bottom0 is pure CSS placed by

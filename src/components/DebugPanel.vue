@@ -26,7 +26,6 @@ const props = defineProps<{
   view: 'page' | 'inner'
 }>()
 const mode = defineModel<HeightMode>('mode', { required: true })
-const blurShield = defineModel<boolean>('blurShield', { required: true })
 const statusBar = defineModel<StatusBarStyle>('statusBar', { default: 'black-translucent' })
 // Bottom bar strategy (both views have the bar).
 const barMode = defineModel<BarMode>('barMode', { default: 'bottom0' })
@@ -295,7 +294,6 @@ const sections = computed<Section[]>(() => {
       rows: [
         { label: 'expected here', value: e.expectTopBlur ? 'yes (iOS ≥ 27 or frozen UA)' : 'no' },
         { label: 'Reduce Transp.', value: m.reduceTransparency },
-        { label: 'blur shield', value: blurShield.value ? 'ON (fixed 12px strip at top)' : 'off' },
       ],
     },
     {
@@ -375,7 +373,7 @@ const copyState = ref('Copy JSON')
 async function copyJson() {
   const text = JSON.stringify(
     {
-      settings: { view: props.view, mode: mode.value, blurShield: blurShield.value, statusBarStyle: statusBar.value, bar: barMode.value },
+      settings: { view: props.view, mode: mode.value, statusBarStyle: statusBar.value, bar: barMode.value },
       env: props.env,
       metrics: props.metrics,
       events: props.events,
@@ -438,16 +436,12 @@ function reload() {
           <option v-for="(b, key) in BAR_MODES" :key="key" :value="key">{{ b.label }}</option>
         </select>
       </label>
-      <label class="check">
-        <input v-model="blurShield" type="checkbox" />
-        iOS 27 blur shield (fixed strip at top)
-      </label>
       <small class="legend">
         <template v-if="!pageMode"><span class="swatch gap"></span>blue = NOT covered by rect · </template><span class="swatch edge"></span>rect edges ·
         <span class="swatch safe"></span>safe area
         <template v-if="pageMode">
-          · <span class="swatch" style="background: red"></span>html bg · <span class="swatch" style="background: darkred"></span>theme-color
-          · <span class="swatch" style="background: darkgrey"></span>.content
+          · <span class="swatch" style="background: #fff"></span>html bg · <span class="swatch" style="background: darkred"></span>theme-color
+          · <span class="swatch" style="background: #fff"></span>.content
         </template>
       </small>
     </div>
@@ -483,7 +477,7 @@ function reload() {
 
 .verdict,
 .box {
-  background: rgb(0 0 0 / 0.35);
+  background: var(--box-bg, rgb(0 0 0 / 0.35));
   border-radius: 10px;
   padding: 6px 8px;
 }

@@ -43,6 +43,7 @@ defineProps<{ metrics: Metrics | null }>()
   left: 0;
   right: 0;
   font: 10px/1 ui-monospace, Menlo, monospace;
+  color: var(--ruler, #fff);
 }
 .guide span {
   position: absolute;
@@ -51,11 +52,11 @@ defineProps<{ metrics: Metrics | null }>()
 }
 .guide.safe-top {
   top: var(--sat);
-  border-top: 1px dashed #fff;
+  border-top: 1px dashed var(--ruler, #fff);
 }
 .guide.safe-bottom {
   bottom: var(--sab);
-  border-bottom: 1px dashed #fff;
+  border-bottom: 1px dashed var(--ruler, #fff);
 }
 .guide.safe-bottom span {
   bottom: 0;

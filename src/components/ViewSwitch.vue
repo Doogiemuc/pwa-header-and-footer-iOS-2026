@@ -29,7 +29,7 @@ const label = computed(() => (props.target === 'page' ? 'Go to "Full Page scroll
 .view-switch {
   position: fixed;
   z-index: 60;
-  top: calc(var(--sat) + 8px);
+  top: calc(var(--sat) + 108px); /* 8px + 100px: below the title / out of the way of the top bar area */
   right: calc(var(--sar) + 8px);
   display: grid;
   place-items: center;

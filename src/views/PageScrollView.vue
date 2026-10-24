@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import BlurShield from '../components/BlurShield.vue'
 import BottomBar from '../components/BottomBar.vue'
 import DebugPanel from '../components/DebugPanel.vue'
 import EdgeOverlay from '../components/EdgeOverlay.vue'
+import FooterLine from '../components/FooterLine.vue'
 import ScrollRuler from '../components/ScrollRuler.vue'
 import ViewSwitch from '../components/ViewSwitch.vue'
 import { useSettings } from '../composables/useSettings'
@@ -23,7 +23,7 @@ const bar = ref<{ $el: HTMLElement } | null>(null)
 const barEl = computed(() => bar.value?.$el ?? null)
 // The rect has overflow: visible, so its scrollHeight / clientHeight describe the 200 % content.
 const { metrics, events, lastEvent, measure } = useViewportMetrics(rectEl, rectEl, contentEl, barEl)
-const { mode, blurShield, barMode, statusBar } = useSettings('page', measure)
+const { mode, barMode, statusBar } = useSettings('page', measure)
 </script>
 
 <template>
@@ -33,7 +33,6 @@ const { mode, blurShield, barMode, statusBar } = useSettings('page', measure)
       <DebugPanel
         view="page"
         v-model:mode="mode"
-        v-model:blur-shield="blurShield"
         v-model:status-bar="statusBar"
         v-model:bar-mode="barMode"
         :env="env"
@@ -44,27 +43,34 @@ const { mode, blurShield, barMode, statusBar } = useSettings('page', measure)
       <ScrollRuler :rect-height="metrics?.rect?.height ?? null" />
     </div>
     <EdgeOverlay :metrics="metrics" />
+    <FooterLine />
   </main>
 
-  <BlurShield v-if="blurShield" />
   <ViewSwitch target="inner" />
   <BottomBar v-if="barMode !== 'off'" ref="bar" :metrics="metrics" :bar-mode="barMode" />
 </template>
 
 <style>
 /*
-  Global, because it targets <html>. The whole document is red, so the colour Safari 26+ extends under the status bar
-  is red too and the native top fade works against it. (theme-color: see the layer-colour test in index.html.)
+  Global, because it targets <html>. The html background is the canvas colour: Safari shows it above the document, i.e. in the
+  part behind the iOS top blur / status bar (it was red here before, now white). theme-color: see index.html.
 */
 :root {
-  --gap: var(--red);
+  --gap: #fff;
 }
 </style>
 
 <style scoped>
-/* Layer test: html = red, theme-color = darkred, .content = darkgrey. If the page works as theorised, no red is visible
-   anywhere inside the document (red can only appear where Safari shows the page background outside it). */
+/* Layer test: html = white, theme-color = darkred, .content = white (the red rect is hidden below .content).
+   Everything that was white-on-dark before gets dark here; the debug boxes keep the same grey as before. */
+.screen {
+  --ruler: #000; /* ruler lines/labels and safe-area guides */
+  --box-bg: rgb(110 110 110); /* = 35 % black over the former darkgrey .content, so the boxes look unchanged */
+}
 .content {
-  background-color: darkgrey;
+  background-color: #fff;
+}
+.page-title {
+  color: #000;
 }
 </style>

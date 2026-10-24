@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import BlurShield from '../components/BlurShield.vue'
 import BottomBar from '../components/BottomBar.vue'
 import DebugPanel from '../components/DebugPanel.vue'
 import EdgeOverlay from '../components/EdgeOverlay.vue'
+import FooterLine from '../components/FooterLine.vue'
 import ScrollRuler from '../components/ScrollRuler.vue'
 import ViewSwitch from '../components/ViewSwitch.vue'
 import { useSettings } from '../composables/useSettings'
@@ -25,7 +25,7 @@ const contentEl = ref<HTMLElement | null>(null)
 const bar = ref<{ $el: HTMLElement } | null>(null)
 const barEl = computed(() => bar.value?.$el ?? null)
 const { metrics, events, lastEvent, measure } = useViewportMetrics(rectEl, scrollerEl, contentEl, barEl)
-const { mode, blurShield, barMode, statusBar } = useSettings('inner', measure)
+const { mode, barMode, statusBar } = useSettings('inner', measure)
 </script>
 
 <template>
@@ -36,7 +36,6 @@ const { mode, blurShield, barMode, statusBar } = useSettings('inner', measure)
         <DebugPanel
           view="inner"
           v-model:mode="mode"
-          v-model:blur-shield="blurShield"
           v-model:status-bar="statusBar"
           v-model:bar-mode="barMode"
           :env="env"
@@ -46,11 +45,11 @@ const { mode, blurShield, barMode, statusBar } = useSettings('inner', measure)
         />
         <ScrollRuler full-width-lines :rect-height="metrics?.rect?.height ?? null" />
       </div>
+      <FooterLine />
     </div>
     <EdgeOverlay :metrics="metrics" />
   </main>
 
-  <BlurShield v-if="blurShield" />
   <ViewSwitch target="page" />
   <BottomBar v-if="barMode !== 'off'" ref="bar" :metrics="metrics" :bar-mode="barMode" />
 </template>

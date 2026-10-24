@@ -10,7 +10,7 @@ const isStatusBarStyle = (v: unknown): v is StatusBarStyle => STATUS_BAR_STYLES.
 
 /**
  * Settings shared by both views. They live in the URL so a reload (there is no reload button in a Home Screen
- * app) or a shared link keeps them: ?h=<height mode>&shield=0|1&sb=<status bar style>&bar=<bar strategy>.
+ * app) or a shared link keeps them: ?h=<height mode>&sb=<status bar style>&bar=<bar strategy>.
  */
 export function useSettings(view: View, onChange: () => void) {
   const params = new URLSearchParams(location.search)
@@ -20,7 +20,6 @@ export function useSettings(view: View, onChange: () => void) {
   const mode = ref<HeightMode>(
     isHeightMode(initialHeight) && !(view === 'page' && initialHeight === 'fixed') ? initialHeight : 'dvh',
   )
-  const blurShield = ref(params.get('shield') === '1')
   const initialBar = params.get('bar')
   const barMode = ref<BarMode>(isBarMode(initialBar) ? initialBar : 'bottom0')
 
@@ -63,10 +62,9 @@ export function useSettings(view: View, onChange: () => void) {
     })
   })
 
-  watch([mode, blurShield, barMode, statusBar], async () => {
+  watch([mode, barMode, statusBar], async () => {
     const url = new URL(location.href)
     url.searchParams.set('h', mode.value)
-    url.searchParams.set('shield', blurShield.value ? '1' : '0')
     url.searchParams.set('sb', statusBar.value)
     url.searchParams.set('bar', barMode.value)
     history.replaceState(null, '', url)
@@ -74,5 +72,5 @@ export function useSettings(view: View, onChange: () => void) {
     onChange()
   })
 
-  return { mode, blurShield, barMode, statusBar }
+  return { mode, barMode, statusBar }
 }

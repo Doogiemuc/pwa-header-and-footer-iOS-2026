@@ -1,0 +1,149 @@
+:root {
+  --red: #ff0000;
+  /* Page background. Any visible blue = area the red rectangle does NOT cover. */
+  --gap: #0033cc;
+  --edge: #ffeb3b;
+  --blue: #0033cc;
+  /* Height of the blue bottom bar's content (the future LIQUIDO footer), without the safe-area padding. */
+  --bar-h: 56px;
+  /* Total bar height: content + env(safe-area-inset-bottom) as padding (0 in Safari, 34px in Firefox iOS). */
+  --bar-total: calc(var(--bar-h) + var(--sab));
+
+  --sat: env(safe-area-inset-top, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+
+  background: var(--gap);
+  color: #fff;
+  font-family: system-ui, -apple-system, sans-serif;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+}
+
+.screen {
+  position: relative;
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  background: var(--red);
+}
+
+/* ---------- height strategies (html[data-height-mode]) ---------- */
+
+[data-height-mode='dvh'] .screen {
+  height: 100vh;
+  height: 100dvh;
+}
+
+[data-height-mode='svh'] .screen {
+  height: 100vh;
+  height: 100svh;
+}
+
+[data-height-mode='lvh'] .screen {
+  height: 100vh;
+  height: 100lvh;
+}
+
+[data-height-mode='vh'] .screen {
+  height: 100vh;
+}
+
+[data-height-mode='percent'],
+[data-height-mode='percent'] body,
+[data-height-mode='percent'] #app,
+[data-height-mode='percent'] .screen {
+  height: 100%;
+}
+
+[data-height-mode='fill'],
+[data-height-mode='fill'] body,
+[data-height-mode='fill'] #app {
+  height: -webkit-fill-available;
+}
+[data-height-mode='fill'] .screen {
+  height: 100vh;
+  height: -webkit-fill-available;
+}
+
+[data-height-mode='js'] .screen {
+  height: var(--js-inner-height, 100vh);
+}
+
+[data-height-mode='fixed'] .screen {
+  position: fixed;
+  inset: 0;
+}
+
+/* ---------- scroll mode: the document scrolls (html[data-scroll='page']) ----------
+   The whole document is red, so the colour Safari 26+ extends under the status bar is red too and
+   the native top fade works against it. The rect keeps its exact height; its content (200 %) overflows
+   and is scrolled by the page itself, i.e. no inner scroll container and no blue bar. */
+
+[data-scroll='page'] {
+  --gap: var(--red);
+}
+
+[data-scroll='page'] .screen {
+  overflow: visible;
+}
+
+html[data-scroll='page'] .screen .scroller {
+  position: relative;
+  inset: auto;
+  height: 100%;
+  overflow: visible;
+}
+
+/* (Higher specificity than the scoped .scroller rules in App.vue.)
+   A fixed rect cannot scroll the document: fall back to scrolling inside it. */
+[data-scroll='page'][data-height-mode='fixed'] .screen {
+  overflow: hidden;
+}
+html[data-scroll='page'][data-height-mode='fixed'] .screen .scroller {
+  position: absolute;
+  inset: 0;
+  height: auto;
+  overflow-y: auto;
+}
+
+/* ---------- blue bottom bar: sits exactly on top of the floating Safari controls ----------
+   html[data-bar] selects how its vertical position is calculated; see BAR_MODES. */
+
+.bottom-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  box-sizing: border-box;
+  height: var(--bar-total);
+  /* The inset is padding (not margin), so the blue background fills the area under the home indicator /
+     the rounded screen corners. box-sizing: border-box keeps the content area at exactly --bar-h. */
+  padding: 0 max(12px, var(--sar)) var(--sab) max(12px, var(--sal));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: var(--blue);
+  border-top: 2px solid #fff;
+  font: 11px/1.3 ui-monospace, Menlo, monospace;
+  pointer-events: none;
+}
+
+html[data-bar='dvh'] .bottom-bar {
+  top: calc(100vh - var(--bar-total)); /* fallback without dvh */
+  top: calc(100dvh - var(--bar-total));
+}
+
+html[data-bar='js'] .bottom-bar {
+  top: calc(var(--vv-bottom, 100vh) - var(--bar-total));
+}
+
+html[data-bar='bottom0'] .bottom-bar {
+  bottom: 0;
+}

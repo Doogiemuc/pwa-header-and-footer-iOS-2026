@@ -5,7 +5,90 @@ measurement that influences "screen height" on mobile — especially iOS Safari,
 iOS Home Screen web apps (including the iOS 27 top blur).
 
 The content inside the rectangle is **200 %** of its height and scrolls (ruler on the right).
-The **scroll** switch in the panel chooses who scrolls: the page itself (native iOS top fade) or the rectangle inside.
+Two pages, one per scroll behaviour (the panel links between them and keeps the settings):
+
+| Page | URL | Who scrolls | DOM |
+| --- | --- | --- | --- |
+| **page scrolls** | `/` (`index.html`) | the document (native iOS top fade, Safari toolbars collapse) | `main.screen` › `div.content` (+ fixed footer) |
+| **rect scrolls inside** | `/inner.html` | the rectangle itself (document never scrolls, toolbars keep their size) | `main.screen` › `div.scroller` › `div.content` |
+
+The extra `scroller` layer in the inner page exists only so the yellow edge overlay stays pinned to the rectangle instead of
+scrolling away. Old links with `?scroll=inner` on `/` redirect to `/inner.html`.
+
+## Findings for the LIQUIDO / POLLY refactor
+
+> **Audience:** this section is written for another coding session that will apply the same layout to the LIQUIDO and POLLY
+> apps. It is updated as testing on a real device continues. Evidence labels: **[device]** = observed by the owner on a real
+> iPhone 16 Pro, iOS 27.0.1; **[sources]** = third-party reports, no official Apple docs; **[untested]** = implemented here
+> but not yet confirmed on a device. Everything else in this README is the tooling, not the findings.
+
+### Recipe that worked (open `/` in this POC to see it)
+
+1. `<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">`.
+2. **Let the document scroll.** No inner scroll container, no `overflow: hidden` on `html`/`body`. Then the iOS 27 top fade
+   works natively: content fades out behind the clock / Wi-Fi / battery. **[device]**
+3. **`html` background = the colour that should appear under the status bar** (here red). Safari 26+ fills that area from the
+   page background. In the first version `html` and `theme-color` were blue and that blue showed as a bar at the top while the
+   red content scrolled "under" it; after making `html` red and removing `theme-color` the bar was gone. **[device]**
+   (We changed both at once, so we don't know which of the two was the cause.) Don't set `theme-color` unless you want the tint.
+4. **Fixed footer in plain CSS, nothing else:**
+   ```css
+   .footer {
+     position: fixed; left: 0; right: 0; bottom: 0;
+     box-sizing: border-box;
+     height: calc(var(--footer-h) + env(safe-area-inset-bottom));
+     padding-bottom: env(safe-area-inset-bottom); /* padding, not margin: the footer background fills it */
+   }
+   ```
+   * Safari: sits exactly on top of the floating controls and follows their shrink/grow animation without jumping. **[device]**
+   * Do **not** position it with `top: calc(100dvh - h)` or from JS (`visualViewport` per frame): both run on the main thread and
+     visibly lag/jump while the toolbar animates. **[device]**
+   * Firefox on iOS: footer is placed correctly and jumps to the very bottom while scrolling (acceptable). **[device]**
+     Firefox reports `safe-area-inset-bottom` = 34px (Safari reports 0), so without the padding the screen's rounded corners cut
+     off the footer corners. The padding fix is implemented. **[untested]** on the phone since the fix.
+5. Give the page content `padding-bottom: calc(var(--footer-h) + env(safe-area-inset-bottom))` so the last content isn't hidden
+   behind the footer. **[untested]** (the POC content is test filler, it doesn't do this).
+
+### Device facts (iPhone 16 Pro, 402×874 @3x, iOS 27.0.1)
+
+| Value | Safari (controls expanded) | Firefox on iOS |
+| --- | --- | --- |
+| UA | `iPhone OS 18_7` (frozen) + `Version/27.0.1` | `FxiOS`, OS token frozen too |
+| `screen` / `outerHeight` | 874 | 874 |
+| `innerHeight` = `100dvh` = `visualViewport.height` | 710 | not recorded |
+| `100svh` | 710.33 | not recorded |
+| `100vh` = `100lvh` | 748.33 (38px more than visible) | not recorded |
+| `env(safe-area-inset-*)` | all 0 | bottom 34px (others not recorded) |
+
+* `100vh`/`lvh` is **38px taller than the visible area** while the controls are expanded: don't size layouts with it.
+* `viewport-fit=cover` did not give Safari a non-zero top inset: the layout viewport starts below the status bar; the area behind
+  it is only filled with the page background (and shows scrolled content when the document scrolls).
+* While the toolbar animates, `resize` / `scroll` / `visualViewport.resize` fire hundreds of times (a test session logged 609
+  scroll events). Never run expensive work (e.g. `matchMedia` searches, layout reads) per event.
+
+### Traps and what we tried
+
+* **Inner scroll container** (`/inner.html`, "rect scrolls inside"): the bottom iOS controls then **don't change size**
+  because the root never scrolls **[device]**, but content is clipped at the top of the viewport and can't scroll under the status
+  bar (no native fade), and the area under the status bar shows the page background. Use it only if stable toolbars matter more
+  than the fade.
+* A fixed red strip at the top (to make that area red in inner mode, based on a WebKit heuristic from **[sources]**) was tried and
+  removed again on request; it is not in the code.
+* iOS version from the UA: Safari 26+ freezes the OS token (`18_7`); the real version is in `Version/x`. Use `max(OS, Version)`.
+  Firefox/Chrome on iOS have no `Version` token.
+* The iOS 27.0.1 top blur is much smaller than early reports (62px inset + 38px veil, home-screen app **[sources]**): no extra top
+  clearance is needed in Safari. **[device]** The optional "blur shield" strip is unnecessary there.
+* Reference site (`de.ra.co`, analysed read-only): page scroll, **fixed 60px header** (`position: fixed; top: 0`) plus a sticky stack
+  below it with hard-coded px `top` values, **no fixed footer**, no `viewport-fit=cover`, no `env(safe-area-inset-*)`, no
+  `dvh/svh/lvh`, `theme-color=#000` with a black header. It avoids the whole bottom-edge problem by having nothing at the bottom.
+
+### Still to test (update as we go)
+
+- [ ] Firefox on iOS: footer after the 34px padding fix; record `innerHeight` / units / insets (Copy JSON).
+- [ ] Safari Home Screen app (standalone): top / bottom insets, does the footer sit on the home indicator, top blur, status bar.
+- [ ] Firefox Home Screen app.
+- [ ] Landscape (side insets, footer, `innerHeight`).
+- [ ] iPad.
 
 ## Run
 
@@ -30,19 +113,19 @@ Phone and Mac must be on the same Wi-Fi. Use the `Network:` URL Vite prints (e.g
 
 ## How to read the screen
 
-* **Blue** = page background. Any blue you see is area the red rectangle does **not** cover
-  (also visible during rubber-band overscroll). `theme-color` is blue too, so browser chrome never fakes red coverage.
+* **Blue** (`/inner.html` only; on `/` the page background is red) = page background. Any blue you see is area the
+  red rectangle does **not** cover (also visible during rubber-band overscroll). There is no `theme-color` meta on purpose.
 * **Yellow lines** = top and bottom edge of the rectangle.
 * **White dashed lines** = `env(safe-area-inset-top / -bottom)`.
 * **Verdict** box: rect height vs `innerHeight`, `visualViewport.height` and screen height, rect top/bottom,
   whether the page can scroll (rect too tall), and whether the content really is 200 %.
 
-Settings are kept in the URL (`?h=dvh&scroll=page&shield=1`), so *Reload* (there is no reload button in a
+Settings are kept in the URL (`?h=dvh&shield=1`, plus `&bar=bottom0` on `/`), so *Reload* (there is no reload button in a
 Home Screen app) keeps them. *Copy JSON* copies all values for comparing devices.
 
-## Page-scroll mode extras (`scroll=page`, the default)
+## Extras on the page-scroll page (`/`)
 
-Only in "page scrolls" mode (the "rect scrolls inside" mode is unchanged):
+Only on `/` (`/inner.html` has none of this):
 
 * **Summary** box at the top: browser, iOS major, display-mode (`standalone` is shown as "home screen app"),
   `window.scrollY`, `visualViewport.scale` (yellow alert when zoomed).
@@ -107,9 +190,12 @@ Sources: [grappa-irc#2190](https://github.com/vjt/grappa-irc/issues/2190) (measu
 
 ## Files
 
-* `src/App.vue`: rectangle, 200 % content + ruler, edge overlay, blur shield
+* `index.html` + `src/main-page.ts` + `src/views/PageScrollView.vue`: the **page scrolls** page (rectangle, content, blue bottom bar and its CSS)
+* `inner.html` + `src/main-inner.ts` + `src/views/InnerScrollView.vue`: the **rect scrolls inside** page
+* `src/components/`: `ScrollRuler`, `EdgeOverlay`, `BlurShield` (shared by both pages)
+* `src/composables/useSettings.ts`: URL-persisted settings (height mode, blur shield, bar strategy)
 * `src/components/DebugPanel.vue`: verdict, settings, debug tables
 * `src/composables/useViewportMetrics.ts`: all measurements, height modes
 * `src/lib/environment.ts`: browser / iOS version / Home Screen detection, model guess
-* `src/style.css`: safe-area variables, height-mode rules, overflow lock
+* `src/style.css`: shared safe-area variables, `.screen` / `.content`, height-mode rules (view-specific CSS lives in the views)
 * `scripts/make-icons.mjs`: generates the PNG icons (`npm run icons`)

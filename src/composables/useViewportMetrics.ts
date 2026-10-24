@@ -12,7 +12,6 @@ export const HEIGHT_MODES = {
 } as const
 
 export type HeightMode = keyof typeof HEIGHT_MODES
-export type ScrollMode = 'page' | 'inner'
 
 /** Strategies for the blue bar that must sit exactly on top of the floating Safari controls (default: bottom0). */
 export const BAR_MODES = {

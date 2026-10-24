@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { BAR_MODES, HEIGHT_MODES, type BarMode, type HeightMode, type Metrics, type ScrollMode } from '../composables/useViewportMetrics'
+import { BAR_MODES, HEIGHT_MODES, type BarMode, type HeightMode, type Metrics } from '../composables/useViewportMetrics'
 import type { EnvInfo } from '../lib/environment'
 
 type Status = 'ok' | 'bad' | 'info'
@@ -20,11 +20,13 @@ const props = defineProps<{
   metrics: Metrics | null
   events: Record<string, number>
   lastEvent: string
+  /** 'page' = the document scrolls (index.html), 'inner' = the rect scrolls its content (inner.html). */
+  view: 'page' | 'inner'
 }>()
 const mode = defineModel<HeightMode>('mode', { required: true })
 const blurShield = defineModel<boolean>('blurShield', { required: true })
-const scrollMode = defineModel<ScrollMode>('scrollMode', { required: true })
-const barMode = defineModel<BarMode>('barMode', { required: true })
+// Only the page view has the bottom bar.
+const barMode = defineModel<BarMode>('barMode', { default: 'bottom0' })
 
 const TOLERANCE = 1 // px – unit values can be fractional (e.g. 873.67)
 
@@ -32,8 +34,8 @@ const px = (n: number | null | undefined) => (n == null || Number.isNaN(n) ? 'n/
 const size = (w: number, h: number) => `${+w.toFixed(2)} × ${+h.toFixed(2)}`
 const near = (a: number, b: number) => Math.abs(a - b) < TOLERANCE
 const signed = (n: number) => `${n > 0 ? '+' : ''}${+n.toFixed(2)}px`
-// Page-scroll mode only: the inner-scroll mode keeps the original wording and layout.
-const pageMode = computed(() => scrollMode.value === 'page')
+// Summary box and bottom bar exist in the page view only; the inner view keeps the original wording and layout.
+const pageMode = computed(() => props.view === 'page')
 const displayLabel = (d: string) => (pageMode.value && d === 'standalone' ? 'home screen app' : d)
 const PAGE_ONLY_SECTIONS = ['Summary', 'Blue bottom bar (above the Safari controls)']
 const yesNo = (b: boolean | undefined) => (b === undefined ? 'undefined' : b ? 'yes' : 'no')
@@ -117,7 +119,7 @@ const sections = computed<Section[]>(() => {
               value: `${px(r.top)} / ${px(r.bottom)}`,
               status: near(r.top, 0) && near(r.bottom, m.window.innerHeight) ? 'ok' : 'bad',
             },
-            scrollMode.value === 'page'
+            pageMode.value
               ? {
                   label: 'document scroll range',
                   value: `${px(docOverflow)} (expected ≈ ${px(r.height)}: 200% content − 100%)`,
@@ -268,7 +270,7 @@ const sections = computed<Section[]>(() => {
       title: 'Rectangle & document',
       open: false,
       rows: [
-        { label: 'scroll container', value: scrollMode.value === 'page' ? 'document (html)' : 'inside the rect' },
+        { label: 'scroll container', value: pageMode.value ? 'document (html)' : 'inside the rect' },
         { label: 'height mode', value: `${HEIGHT_MODES[mode.value].label}: ${HEIGHT_MODES[mode.value].description}` },
         { label: 'rect W × H', value: r ? size(r.width, r.height) : 'n/a' },
         { label: 'rect scrollTop', value: r ? px(r.scrollTop) : 'n/a' },
@@ -291,12 +293,27 @@ const sections = computed<Section[]>(() => {
   return pageMode.value ? all : all.filter((sec) => !PAGE_ONLY_SECTIONS.includes(sec.title))
 })
 
+// The two views are two pages; the links keep the shared settings (the bottom bar strategy only exists in the page view).
+const heightModes = computed(
+  () =>
+    Object.entries(HEIGHT_MODES).filter(([key]) => pageMode.value || key !== 'fixed') as [
+      HeightMode,
+      (typeof HEIGHT_MODES)[HeightMode],
+    ][],
+)
+
+function viewHref(file: string) {
+  const url = new URL(file, location.href)
+  url.search = location.search
+  return url.href
+}
+
 const copyState = ref('Copy JSON')
 
 async function copyJson() {
   const text = JSON.stringify(
     {
-      settings: { mode: mode.value, scrollMode: scrollMode.value, blurShield: blurShield.value },
+      settings: { view: props.view, mode: mode.value, blurShield: blurShield.value, bar: pageMode.value ? barMode.value : null },
       env: props.env,
       metrics: props.metrics,
       events: props.events,
@@ -333,19 +350,20 @@ function reload() {
     <div class="box controls">
       <div class="row">
         <select v-model="mode" aria-label="Height mode">
-          <option v-for="(m, key) in HEIGHT_MODES" :key="key" :value="key">{{ m.label }}</option>
+          <option v-for="[key, m] in heightModes" :key="key" :value="key">{{ m.label }}</option>
         </select>
         <button type="button" @click="copyJson">{{ copyState }}</button>
         <button type="button" @click="reload">Reload</button>
       </div>
       <small>{{ HEIGHT_MODES[mode].description }}</small>
-      <label class="check">
-        scroll
-        <select v-model="scrollMode" aria-label="Scroll container">
-          <option value="page">page scrolls (native top fade)</option>
-          <option value="inner">rect scrolls inside (blue bg)</option>
-        </select>
-      </label>
+      <nav class="views" aria-label="View">
+        scroll:
+        <strong v-if="pageMode">page scrolls (native top fade)</strong>
+        <a v-else :href="viewHref('index.html')">page scrolls (native top fade)</a>
+        ·
+        <strong v-if="!pageMode">rect scrolls inside (blue bg)</strong>
+        <a v-else :href="viewHref('inner.html')">rect scrolls inside (blue bg)</a>
+      </nav>
       <label v-if="pageMode" class="check">
         blue bar
         <select v-model="barMode" aria-label="Blue bottom bar strategy">
@@ -357,7 +375,7 @@ function reload() {
         iOS 27 blur shield (fixed strip at top)
       </label>
       <small class="legend">
-        <template v-if="scrollMode === 'inner'"><span class="swatch gap"></span>blue = NOT covered by rect · </template><span class="swatch edge"></span>rect edges ·
+        <template v-if="!pageMode"><span class="swatch gap"></span>blue = NOT covered by rect · </template><span class="swatch edge"></span>rect edges ·
         <span class="swatch safe"></span>safe area
       </small>
     </div>
@@ -476,6 +494,13 @@ input[type='checkbox'] {
 .sections > details {
   break-inside: avoid;
   margin-bottom: 6px;
+}
+
+nav.views {
+  font-size: 12px;
+}
+nav.views a {
+  color: #fff;
 }
 
 summary {

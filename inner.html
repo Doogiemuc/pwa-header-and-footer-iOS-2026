@@ -1,0 +1,31 @@
+<!doctype html>
+<!-- Same <head> as index.html on purpose (both are installable Home Screen apps). Only the title and the entry script differ. -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!--
+      viewport-fit=cover: let the page extend under the notch / Dynamic Island / home indicator,
+      which makes env(safe-area-inset-*) report real values instead of 0.
+      Zoom is intentionally NOT disabled: pinch-zoom is visible in visualViewport.scale.
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+    <!-- Home Screen web app (iOS + others) -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <!-- black-translucent = content draws under the status bar (only way to get full screen height). -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Screen Height inner" />
+    <meta name="format-detection" content="telephone=no" />
+    <!-- No theme-color on purpose: Safari 26+ would tint the area under the status bar with it. -->
+
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/png" href="/icon-192.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <title>Screen Height POC (inner scroll)</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main-inner.ts"></script>
+  </body>
+</html>

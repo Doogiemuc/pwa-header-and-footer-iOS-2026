@@ -83,6 +83,10 @@ scrolling away. Old links with `?scroll=inner` on `/` redirect to `/inner.html`.
   removed again on request; it is not in the code.
 * iOS version from the UA: Safari 26+ freezes the OS token (`18_7`); the real version is in `Version/x`. Use `max(OS, Version)`.
   Firefox/Chrome on iOS have no `Version` token.
+* **Reference version = git tag `v1.0`** (commit `089e533`, `/` "Full Page scrolls"): on the owner's iPhone 16 Pro (iOS 27.0.1, Safari)
+  it shows only a **small top blur, as high as the top iOS controls**: exactly the wanted behaviour. **[device]** The owner saw
+  *different* blur heights in other versions of this POC, so the blur height depends on the page's structure/CSS. If the blur ever
+  looks bigger, `git diff v1.0` is the first thing to look at. (We don't yet know which of the differences matters.)
 * The iOS 27.0.1 top blur is much smaller than early reports (62px inset + 38px veil, home-screen app **[sources]**): no extra top
   clearance is needed in Safari. **[device]** The optional "blur shield" strip is unnecessary there.
 * Reference site (`de.ra.co`, analysed read-only): page scroll, **fixed 60px header** (`position: fixed; top: 0`) plus a sticky stack

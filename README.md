@@ -13,6 +13,10 @@ Two pages, one per scroll behaviour (the panel links between them and keeps the 
 | **page scrolls** | `/` (`index.html`) | the document (native iOS top fade, Safari toolbars collapse) | `main.screen` › `div.content` (+ fixed footer) |
 | **rect scrolls inside** | `/inner.html` | the rectangle itself (document never scrolls, toolbars keep their size) | `main.screen` › `div.scroller` › `div.content` (+ fixed footer) |
 
+A **round white button at the top right** (`ViewSwitch.vue`, fixed, 44px) on both pages links to the other page and keeps the settings in the URL.
+**Watch the iOS top blur** after this change: it is a `position: fixed` element at the top edge, and the blur height depends on such things
+(compare with `git diff v1.0`, which has no such button).
+
 The extra `scroller` layer in the inner page exists only so the yellow edge overlay stays pinned to the rectangle instead of
 scrolling away. Old links with `?scroll=inner` on `/` redirect to `/inner.html`.
 
@@ -134,15 +138,22 @@ The panel has a **status bar** select (`black-translucent` (default), `default`,
 `<meta>`; pick a value, then add the icon. The launched icon doesn't carry the URL, so the panel shows the *selected* value, not
 necessarily what the installed icon was created with.
 
-**Layer-colour test** (`/` only): `html` background red, `<meta name="theme-color" content="darkred">` (normally it would equal the
-background; deliberately different to see where it shows), `.content` dark grey (covers the whole document, so no red should be
-visible inside it). The web manifest uses `background_color: red` / `theme_color: darkred` to match. `/inner.html` has no `theme-color`
-and no `.content` colour.
+**Mobile HTML tags box** (both pages, below the Summary box): shows the live value of the mobile related `<head>` tags and checks them
+against Apple's [Supported Meta Tags](https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariHTMLRef/Articles/MetaTags.html)
+reference, which documents only `viewport`, `format-detection`, `apple-mobile-web-app-capable` (`yes` = full-screen web app; detect with
+`navigator.standalone`) and `apple-mobile-web-app-status-bar-style` (`default` / `black` / `black-translucent`; **no effect unless
+`apple-mobile-web-app-capable` is `yes`**). `apple-mobile-web-app-title`, `mobile-web-app-capable` and `theme-color` are not on that page
+and are marked as such; the box also lists the `apple-touch-icon` and `manifest` links.
+
+**Layer-colour test**: `<meta name="theme-color" content="darkred">` on **both** pages (normally it would equal the page background;
+deliberately different to see where it shows). On `/` additionally `html` background red and `.content` dark grey (covers the whole document,
+so no red should be visible inside it); `/inner.html` keeps its blue page background and has no `.content` colour. The web manifest uses
+`background_color: red` / `theme_color: darkred` to match.
 
 ## How to read the screen
 
 * **Blue** (`/inner.html` only; on `/` the page background is red) = page background. Any blue you see is area the
-  red rectangle does **not** cover (also visible during rubber-band overscroll). There is no `theme-color` meta on purpose.
+  red rectangle does **not** cover (also visible during rubber-band overscroll). `theme-color` is `darkred` on both pages (layer test, see above).
 * **Yellow lines** = top and bottom edge of the rectangle.
 * **White dashed lines** = `env(safe-area-inset-top / -bottom)`.
 * **Verdict** box: rect height vs `innerHeight`, `visualViewport.height` and screen height, rect top/bottom,
@@ -151,10 +162,11 @@ and no `.content` colour.
 Settings are kept in the URL (`?h=dvh&shield=1`, plus `&bar=bottom0` on `/`), so *Reload* (there is no reload button in a
 Home Screen app) keeps them. *Copy JSON* copies all values for comparing devices.
 
-## Blue bottom bar (both pages) and Summary box (`/` only)
+## Summary box and blue bottom bar (both pages)
 
-* **Summary** box at the top (`/` only): browser, iOS major, display-mode (`standalone` is shown as "home screen app"),
-  `window.scrollY`, `visualViewport.scale` (yellow alert when zoomed).
+* **Summary** box at the top (both pages): browser, iOS major, display-mode (`standalone` is shown as "home screen app"),
+  `window.scrollY` (`/`) or the rectangle's `scrollTop` (`/inner.html`, where the window never scrolls), `visualViewport.scale`
+  (yellow alert when zoomed).
 * **Blue bar** (56px, `position: fixed`, component `BottomBar.vue`, on **both** pages): where a fixed bottom footer has to sit,
   exactly above the floating Safari controls, which shrink while scrolling. Its label doubles as a status line (bar bottom,
   `100dvh`, `innerHeight`). Strategies (select `blue bar`, URL `?bar=`):
@@ -219,7 +231,7 @@ Sources: [grappa-irc#2190](https://github.com/vjt/grappa-irc/issues/2190) (measu
 
 * `index.html` + `src/main-page.ts` + `src/views/PageScrollView.vue`: the **page scrolls** page (rectangle, content, blue bottom bar and its CSS)
 * `inner.html` + `src/main-inner.ts` + `src/views/InnerScrollView.vue`: the **rect scrolls inside** page
-* `src/components/`: `ScrollRuler`, `EdgeOverlay`, `BlurShield`, `BottomBar` (shared by both pages)
+* `src/components/`: `ScrollRuler`, `EdgeOverlay`, `BlurShield`, `BottomBar`, `ViewSwitch` (shared by both pages); `src/lib/viewLinks.ts`: link to the other page
 * `src/composables/useSettings.ts`: URL-persisted settings (height mode, blur shield, bar strategy)
 * `src/components/DebugPanel.vue`: verdict, settings, debug tables
 * `src/composables/useViewportMetrics.ts`: all measurements, height modes

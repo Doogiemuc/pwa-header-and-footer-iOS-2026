@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- Same <head> as index.html (both are installable Home Screen apps). Differences: title, entry script, and NO theme-color here. -->
+<!-- Same <head> as index.html (both are installable Home Screen apps). Differences: title, apple-mobile-web-app-title, entry script. -->
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -17,7 +17,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Screen Height inner" />
     <meta name="format-detection" content="telephone=no" />
-    <!-- No theme-color on purpose: Safari 26+ would tint the area under the status bar with it. -->
+    <!-- Layer test: theme-color = darkred on both pages (normally it would equal the html background). -->
+    <meta name="theme-color" content="darkred" />
 
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" type="image/png" href="/icon-192.png" />

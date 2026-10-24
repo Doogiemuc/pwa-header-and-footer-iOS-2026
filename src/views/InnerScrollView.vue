@@ -5,6 +5,7 @@ import BottomBar from '../components/BottomBar.vue'
 import DebugPanel from '../components/DebugPanel.vue'
 import EdgeOverlay from '../components/EdgeOverlay.vue'
 import ScrollRuler from '../components/ScrollRuler.vue'
+import ViewSwitch from '../components/ViewSwitch.vue'
 import { useSettings } from '../composables/useSettings'
 import { useViewportMetrics } from '../composables/useViewportMetrics'
 import { detectEnvironment } from '../lib/environment'
@@ -50,6 +51,7 @@ const { mode, blurShield, barMode, statusBar } = useSettings('inner', measure)
   </main>
 
   <BlurShield v-if="blurShield" />
+  <ViewSwitch target="page" />
   <BottomBar v-if="barMode !== 'off'" ref="bar" :metrics="metrics" :bar-mode="barMode" />
 </template>
 

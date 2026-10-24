@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { viewHref } from '../lib/viewLinks'
 import { STATUS_BAR_STYLES, type StatusBarStyle } from '../composables/useSettings'
 import { BAR_MODES, HEIGHT_MODES, type BarMode, type HeightMode, type Metrics } from '../composables/useViewportMetrics'
 import type { EnvInfo } from '../lib/environment'
@@ -36,10 +37,13 @@ const px = (n: number | null | undefined) => (n == null || Number.isNaN(n) ? 'n/
 const size = (w: number, h: number) => `${+w.toFixed(2)} × ${+h.toFixed(2)}`
 const near = (a: number, b: number) => Math.abs(a - b) < TOLERANCE
 const signed = (n: number) => `${n > 0 ? '+' : ''}${+n.toFixed(2)}px`
-// The Summary box exists in the page view only; the inner view keeps the original wording and layout.
+// Both views show the same boxes; `pageMode` only switches the few rows that depend on who scrolls.
 const pageMode = computed(() => props.view === 'page')
-const displayLabel = (d: string) => (pageMode.value && d === 'standalone' ? 'home screen app' : d)
-const PAGE_ONLY_SECTIONS = ['Summary']
+const displayLabel = (d: string) => (d === 'standalone' ? 'home screen app' : d)
+// Live <head> values: read from the DOM on every render, so they follow the status-bar select.
+const metaContent = (name: string) => document.querySelector<HTMLMetaElement>(`meta[name="${name}"]`)?.content ?? null
+const linkHref = (rel: string) => document.querySelector<HTMLLinkElement>(`link[rel="${rel}"]`)?.getAttribute('href') ?? null
+const NOT_APPLE = ' · not on Apple\'s MetaTags page'
 const yesNo = (b: boolean | undefined) => (b === undefined ? 'undefined' : b ? 'yes' : 'no')
 
 const verdict = computed(() => {
@@ -59,6 +63,49 @@ const verdict = computed(() => {
       : `screen ${px(m.screen.heightOriented)} − rect = ${px(screenDelta)} owned by browser UI / system bars`,
   }
 })
+
+/**
+ * Mobile related <head> tags and whether they follow Apple's "Supported Meta Tags" reference
+ * (developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariHTMLRef/Articles/MetaTags.html).
+ * That page documents viewport, format-detection, apple-mobile-web-app-capable and apple-mobile-web-app-status-bar-style.
+ */
+function mobileTagRows(standalone: boolean | undefined): Row[] {
+  void statusBar.value // re-evaluate when the select rewrites the meta
+  const viewport = metaContent('viewport')
+  const formatDetection = metaContent('format-detection')
+  const capable = metaContent('apple-mobile-web-app-capable')
+  const statusBarStyle = metaContent('apple-mobile-web-app-status-bar-style')
+  const set = (v: string | null) => v ?? 'not set'
+  const validStyle = statusBarStyle != null && (STATUS_BAR_STYLES as readonly string[]).includes(statusBarStyle)
+  return [
+    {
+      label: 'viewport',
+      value: set(viewport),
+      status: viewport && /width\s*=\s*device-width/.test(viewport) && /initial-scale/.test(viewport) ? 'ok' : 'bad',
+    },
+    {
+      label: 'format-detection',
+      value: set(formatDetection),
+      status: formatDetection && /telephone\s*=\s*no/.test(formatDetection) ? 'ok' : 'info',
+    },
+    {
+      label: 'apple-mobile-web-app-capable',
+      value: `${set(capable)}${capable === 'yes' ? ' (full-screen web app)' : ''}`,
+      status: capable === 'yes' ? 'ok' : 'info',
+    },
+    {
+      label: 'apple-mobile-web-app-status-bar-style',
+      value: `${set(statusBarStyle)}${capable === 'yes' ? '' : ' (no effect unless capable = yes)'}`,
+      status: validStyle && capable === 'yes' ? 'ok' : 'bad',
+    },
+    { label: 'navigator.standalone', value: yesNo(standalone) },
+    { label: 'apple-mobile-web-app-title', value: set(metaContent('apple-mobile-web-app-title')) + NOT_APPLE },
+    { label: 'mobile-web-app-capable', value: set(metaContent('mobile-web-app-capable')) + NOT_APPLE },
+    { label: 'theme-color', value: set(metaContent('theme-color')) + NOT_APPLE },
+    { label: 'link apple-touch-icon', value: set(linkHref('apple-touch-icon')) },
+    { label: 'link manifest', value: set(linkHref('manifest')) },
+  ]
+}
 
 const sections = computed<Section[]>(() => {
   const m = props.metrics
@@ -89,13 +136,20 @@ const sections = computed<Section[]>(() => {
           value: displayLabel(e.displayMode),
           status: e.displayMode === 'standalone' ? 'ok' : undefined,
         },
-        { label: 'window.scrollY', value: px(m.window.scrollY) },
+        pageMode.value
+          ? { label: 'window.scrollY', value: px(m.window.scrollY) }
+          : { label: 'rect scrollTop', value: px(r?.scrollTop) },
         {
           label: 'visualVP scale',
           value: vv ? `${+vv.scale.toFixed(3)}${vv.scale !== 1 ? ' (zoomed!)' : ''}` : 'n/a',
           status: vv && vv.scale !== 1 ? 'bad' : undefined,
         },
       ],
+    },
+    {
+      title: 'Mobile HTML tags (<head>)',
+      open: true,
+      rows: mobileTagRows(e.navigatorStandalone),
     },
     {
       title: 'Verdict',
@@ -304,7 +358,7 @@ const sections = computed<Section[]>(() => {
       ],
     },
   ]
-  return pageMode.value ? all : all.filter((sec) => !PAGE_ONLY_SECTIONS.includes(sec.title))
+  return all
 })
 
 // The two views are two pages; the links keep the shared settings.
@@ -315,12 +369,6 @@ const heightModes = computed(
       (typeof HEIGHT_MODES)[HeightMode],
     ][],
 )
-
-function viewHref(file: string) {
-  const url = new URL(file, location.href)
-  url.search = location.search
-  return url.href
-}
 
 const copyState = ref('Copy JSON')
 
@@ -384,10 +432,6 @@ function reload() {
           <option v-for="s in STATUS_BAR_STYLES" :key="s" :value="s">{{ s }}</option>
         </select>
       </label>
-      <small>
-        apple-mobile-web-app-status-bar-style: iOS only reads it when the icon is added to the Home Screen: pick a value,
-        delete the old icon, add it again (the URL keeps the choice, the icon launches without it). No effect in a Safari tab.
-      </small>
       <label class="check">
         blue bar
         <select v-model="barMode" aria-label="Blue bottom bar strategy">

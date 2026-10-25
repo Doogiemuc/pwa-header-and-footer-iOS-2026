@@ -1,5 +1,9 @@
 # Mobile screen height POC (Vue 3 + Vite) — state `v4.0`
 
+<p align="center">
+  <img src="docs/screenshot-inner-div-scrolls.png" alt="The 'Inner DIV scrolls' page on an iPhone: fixed HEADER at the top, debug panel with verdict and head tags, fixed blue footer at the bottom" width="320">
+</p>
+
 A proof of concept for laying out a full-height mobile web app (header at the top, footer at the bottom, scrolling content between)
 that behaves on **iOS Safari, Firefox on iOS and as an iOS Home Screen web app** (iOS 27). It measures everything that influences
 "screen height" and shows it in a debug panel.

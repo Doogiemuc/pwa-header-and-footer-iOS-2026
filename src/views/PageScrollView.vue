@@ -49,28 +49,3 @@ const { mode, barMode, statusBar } = useSettings('page', measure)
   <ViewSwitch target="inner" />
   <BottomBar v-if="barMode !== 'off'" ref="bar" :metrics="metrics" :bar-mode="barMode" />
 </template>
-
-<style>
-/*
-  Global, because it targets <html>. The html background is the canvas colour: Safari shows it above the document, i.e. in the
-  part behind the iOS top blur / status bar (it was red here before, now white). theme-color: see index.html.
-*/
-:root {
-  --gap: #fff;
-}
-</style>
-
-<style scoped>
-/* Layer test: html = white, theme-color = darkred, .content = white (the red rect is hidden below .content).
-   Everything that was white-on-dark before gets dark here; the debug boxes keep the same grey as before. */
-.screen {
-  --ruler: #000; /* ruler lines/labels and safe-area guides */
-  --box-bg: rgb(110 110 110); /* = 35 % black over the former darkgrey .content, so the boxes look unchanged */
-}
-.content {
-  background-color: #fff;
-}
-.page-title {
-  color: #000;
-}
-</style>

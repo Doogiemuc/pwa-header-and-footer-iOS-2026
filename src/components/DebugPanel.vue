@@ -421,8 +421,8 @@ function reload() {
         <strong v-if="pageMode">page scrolls (native top fade)</strong>
         <a v-else :href="viewHref('index.html')">page scrolls (native top fade)</a>
         ·
-        <strong v-if="!pageMode">rect scrolls inside (blue bg)</strong>
-        <a v-else :href="viewHref('inner.html')">rect scrolls inside (blue bg)</a>
+        <strong v-if="!pageMode">rect scrolls inside</strong>
+        <a v-else :href="viewHref('inner.html')">rect scrolls inside</a>
       </nav>
       <label class="check">
         status bar
@@ -437,12 +437,10 @@ function reload() {
         </select>
       </label>
       <small class="legend">
-        <template v-if="!pageMode"><span class="swatch gap"></span>blue = NOT covered by rect · </template><span class="swatch edge"></span>rect edges ·
+        <span class="swatch edge"></span>rect edges ·
         <span class="swatch safe"></span>safe area
-        <template v-if="pageMode">
-          · <span class="swatch" style="background: #fff"></span>html bg · <span class="swatch" style="background: darkred"></span>theme-color
-          · <span class="swatch" style="background: #fff"></span>.content
-        </template>
+        · <span class="swatch" style="background: #fff"></span>html bg · <span class="swatch" style="background: #fff"></span>theme-color
+        · <span class="swatch" style="background: #fff"></span>.content
       </small>
     </div>
 

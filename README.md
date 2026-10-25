@@ -1,6 +1,6 @@
 # Mobile screen height POC (Vue 3 + Vite)
 
-One job: a **red rectangle that is exactly as high as the screen**, with live debug info about every
+One job: a **rectangle that is exactly as high as the screen** (it was red in `v1.0`/`v2.0`; it has no colour any more, its edges are the yellow lines), with live debug info about every
 measurement that influences "screen height" on mobile — especially iOS Safari, Firefox on iOS and
 iOS Home Screen web apps (including the iOS 27 top blur).
 
@@ -73,7 +73,7 @@ scrolling away. Old links with `?scroll=inner` on `/` redirect to `/inner.html`.
   it is only filled with the page background (and shows scrolled content when the document scrolls).
 * **The part at the top behind the iOS blur (the status bar zone above the document) shows the colour of our page background, i.e. the
   `html` background (the canvas).** **[device]** In `v1.0` it was red, so the blur sat over red; the document's own `.content` colour
-  does not reach there. Set `html` to the colour you want behind the blur. (`theme-color`, darkred here, was not what the owner saw there.)
+  does not reach there. Set `html` to the colour you want behind the blur. (`theme-color`, darkred at that time, was not what the owner saw there.)
 * While the toolbar animates, `resize` / `scroll` / `visualViewport.resize` fire hundreds of times (a test session logged 609
   scroll events). Never run expensive work (e.g. `matchMedia` searches, layout reads) per event.
 
@@ -101,7 +101,7 @@ scrolling away. Old links with `?scroll=inner` on `/` redirect to `/inner.html`.
 ### Still to test (update as we go)
 
 - [ ] Layer-colour test on `/` (Safari tab, Firefox, Home Screen): which colour shows where (status bar area, behind the toolbars,
-  overscroll, under the footer); does `theme-color` darkred differ visibly from the `html` background, and in which case?
+  overscroll, under the footer); does `theme-color` (now white) matter anywhere? (it was darkred in the layer-colour test)
 - [ ] `apple-mobile-web-app-status-bar-style` `default` / `black` / `black-translucent` in the Home Screen app (re-add the icon each time):
   top inset, content under the status bar, colour of the bar.
 - [ ] Firefox on iOS: footer after the 34px padding fix; record `innerHeight` / units / insets (Copy JSON).
@@ -146,16 +146,20 @@ reference, which documents only `viewport`, `format-detection`, `apple-mobile-we
 `apple-mobile-web-app-capable` is `yes`**). `apple-mobile-web-app-title`, `mobile-web-app-capable` and `theme-color` are not on that page
 and are marked as such; the box also lists the `apple-touch-icon` and `manifest` links.
 
-**Layer-colour test**: `<meta name="theme-color" content="darkred">` on **both** pages (normally it would equal the page background;
-deliberately different to see where it shows). On `/` additionally `html` background **white** and `.content` **white** (it covers the whole
-document; the red rectangle is hidden below it; in `v1.0` they were red / dark grey). The debug boxes are opaque grey (`--box-bg`, the colour they had on the dark
-grey) and ruler lines, labels, title and safe-area guides are black on `/`. `/inner.html` keeps its blue page background, translucent boxes and white text. The web manifest uses
-`background_color: red` / `theme_color: darkred` to match.
+**Colours (both pages)**: `html` background white, `.content` white (it covers the whole scrollable area), `<meta name="theme-color" content="white">`,
+web manifest `background_color` / `theme_color` white. The rectangle itself has no colour (it was red in `v1.0`/`v2.0`; hidden below `.content` anyway). Debug boxes are
+opaque grey (`--box-bg`) and ruler lines, labels, title and safe-area guides are black. All in `src/style.css`. History: `v1.0` had a red `html`; the layer-colour
+test had `theme-color` darkred with white `html`/`.content`.
+
+**Red when pulling down to reload in Firefox on iOS** **[device]**: with `html` white but the layer-colour-test colours still there (red rectangle under `.content`,
+`theme-color` darkred, manifest red/darkred), the owner still saw a red background while dragging the page down. Likely sources: one of those red layers.
+Fix applied: no red anywhere (rectangle colourless, `theme-color` + manifest white). **[untested]** on the phone since. (A diagnosis switch with one bright colour per
+layer was prepared but not used.)
 
 ## How to read the screen
 
-* **Blue** (`/inner.html` only; on `/` the page background is white) = page background. Any blue you see is area the
-  red rectangle does **not** cover (also visible during rubber-band overscroll). `theme-color` is `darkred` on both pages (layer test, see above).
+* **White** = the page background (`html`) and `.content`; the rectangle itself has no colour. (Earlier versions used red / blue
+  here so that any area the rectangle does not cover was visible, also during rubber-band overscroll.) `theme-color` is white on both pages.
 * **Yellow lines** = top and bottom edge of the rectangle.
 * **Yellow line with the label "footer top at scroll 0"** (`FooterLine.vue`, both pages): sits exactly on the footer's top edge while the page is
   not scrolled; it belongs to the scrolling content, so it scrolls away while the fixed footer stays, showing how far the page moved.
@@ -202,7 +206,7 @@ expected: the "document scroll range" / "page scrollable by" row turns red.
 ## What is taken into account
 
 * `viewport-fit=cover`: the page extends under notch / Dynamic Island / home indicator, so
-  `env(safe-area-inset-*)` reports real values. The red rectangle goes edge to edge; the debug content is padded by the insets.
+  `env(safe-area-inset-*)` reports real values. The rectangle goes edge to edge; the debug content is padded by the insets.
 * Home Screen app: `manifest.webmanifest` (`display: standalone`), `apple-mobile-web-app-capable`,
   `black-translucent` status bar (the only way to draw under the status bar = true full screen height), apple-touch-icon.
 * Browser / mode detection: `display-mode` media query, `navigator.standalone`, `FxiOS` / `CriOS` / `EdgiOS` UA tokens,

@@ -1,10 +1,9 @@
 /* Shared by both views. View-specific rules live in src/views/*.vue. */
 
 :root {
-  --red: #ff0000;
-  /* Page background. In the inner-scroll view any visible blue = area the red rectangle does NOT cover.
-     The page view overrides it with red (see PageScrollView.vue). */
-  --gap: #0033cc;
+  /* The html background = the canvas colour: Safari shows it above the document, i.e. in the part behind the iOS top
+     blur / status bar (it was red in v1.0, blue in the first inner-scroll version, white now). theme-color: see index.html. */
+  --gap: #fff;
   --edge: #ffeb3b;
   --blue: #0033cc;
 
@@ -25,12 +24,12 @@ body {
   margin: 0;
 }
 
-/* The red rectangle. Its height comes from the height strategy below. */
+/* The rectangle: exactly as high as the screen (height strategy below). It has no colour any more (it was red in v1.0/v2.0,
+   and was hidden below the white .content anyway); its edges are the yellow lines of EdgeOverlay. */
 .screen {
   position: relative;
   display: block;
   width: 100%;
-  background: var(--red);
 }
 
 /*
@@ -53,6 +52,22 @@ html:not([data-bar='off']) .content {
 }
 .content > .panel {
   z-index: 1;
+}
+
+/*
+  Colours (both pages): html = white (--gap), .content = white (it covers the whole scrollable area, so the red rect below it
+  is not visible), theme-color = white (index.html / inner.html). Everything that is white-on-dark elsewhere is dark here
+  (--ruler), and the debug boxes are opaque grey (--box-bg = 35 % black over the former dark grey .content).
+*/
+.screen {
+  --ruler: #000; /* ruler lines/labels and safe-area guides */
+  --box-bg: rgb(110 110 110);
+}
+.content {
+  background-color: #fff;
+}
+.page-title {
+  color: #000;
 }
 
 /* Large title at the top of each page, so screenshots show which version is which. */

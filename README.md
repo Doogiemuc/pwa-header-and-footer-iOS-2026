@@ -58,30 +58,26 @@ scrollable area). `html` stays white.
    their shrink/grow animation without jumping; in Firefox it is placed correctly (it jumps to the very bottom while scrolling, acceptable).
    Do **not** position it with `top: calc(100dvh − h)` or from JS (`visualViewport` per frame): both run on the main thread and visibly
    lag/jump while the toolbar animates. **[device]**
-3. **`safe-area-inset-bottom`: Safari reports 0, Firefox on iOS 34px, the Home Screen app 34px.** **[device]** Add it as **padding** to the
-   footer (not margin), otherwise the screen's rounded corners cut off the footer's corners. (Applied; checked in Chrome emulation, not
-   re-checked in Firefox on the phone since. **[untested]**)
-4. **The `html` background is the canvas colour and shows everywhere the document has no content:** in the status bar zone above the
-   document, i.e. behind the iOS blur, and in rubber-band overscroll. **[device]** Set `html` to the colour you want there (white here). The
-   content's own background does not reach that zone. A `theme-color` that differs from `html` is another colour source for browser chrome:
-   keep it equal (white); we saw red in the Firefox pull-down area while red layers were still present, fixed by removing all red
-   (**[untested]** on the phone since).
+3. **`safe-area-inset-bottom`: add it to the footer as padding (not margin).** **[device]** Safari tab: 0; Home Screen app: 34px; Firefox on iOS: the footer works fine
+   (the latest test reported 0 as expected in a tab, an earlier one 34px). Padding means the footer's colour fills the area under the home indicator and the
+   rounded screen corners do not cut off the footer's corners.
+4. **Set the page background on the outermost HTML element (`html`).** **[device]** It is the canvas colour and shows wherever the document has no content: in the status bar
+   zone above the document (behind the iOS blur), in rubber-band overscroll and while pulling down to reload. A background on an inner element (`#app`, `.content`) does not
+   reach there. Use the same colour for `<meta name="theme-color">`.
 5. **Content that must be at least N tall: `min-height`, not `height`.** With `height: 200%` taller children overflowed the content box and drew
-   over the bare `html` background (a red band in the POC) and the document grew past it.
-6. **Reserve the footer's height as bottom padding of the scrollable content**, otherwise the last content can never be scrolled out from behind
-   the fixed footer (in the POC the last two debug boxes were completely hidden at maximum scroll). Verified in Chrome emulation at 402×710
-   (18px gap above the footer). **[untested]** on the phone.
-7. **Header: `position: fixed; top: 0`, white, height = content + `env(safe-area-inset-top)` as padding.** Works in Safari and Firefox tabs
-   **[device]**; in a tab the inset is 0, so it is just a 56px bar. Behaviour as Home Screen app: see 3. **[untested]**
+   over the bare `html` background and the document grew past it.
+6. **Reserve the footer's height as bottom padding of the scrollable content**, otherwise the last content can never be scrolled out from behind the fixed footer. **[device]**
+7. **Header: `position: fixed; top: 0`, white, height = content + `env(safe-area-inset-top)` as padding.** **[device]** Works in Safari and Firefox tabs and as Home
+   Screen app (see 3). In a tab the inset is 0, so it is just a 56px bar.
 8. **Full Page scrolls vs Inner DIV scrolls:** Full Page gives the native iOS top fade (content fades out behind clock/battery), but the Safari toolbars
    collapse and `dvh` moves. Inner DIV keeps the bottom iOS controls **at a constant size** because the root never scrolls **[device]**, but the
    scrolling content is clipped at the top of the viewport (no native fade under the status bar; an opaque header makes that moot).
 9. **`apple-mobile-web-app-*` meta tags** (the only ones on Apple's [Supported Meta Tags](https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariHTMLRef/Articles/MetaTags.html)
    page: `viewport`, `format-detection`, `apple-mobile-web-app-capable` (`yes` = full-screen web app, detect with `navigator.standalone`),
-   `apple-mobile-web-app-status-bar-style` = `default` / `black` / `black-translucent`, **no effect unless capable = `yes`**).
+   `apple-mobile-web-app-status-bar-style` = `default` / `black` / `black-translucent`, **no effect unless capable = `yes`**; `default` works everywhere **[device]**).
    `apple-mobile-web-app-title`, `mobile-web-app-capable`, `theme-color` are not on that page. The status-bar style is only read when the
    icon is added to the Home Screen (delete and re-add the icon after changing it). The POC's head: viewport (above), `format-detection: telephone=no`,
-   both `*-capable` = `yes`, status-bar style `black-translucent` (selectable in the panel; the owner's Home Screen tests used `default`),
+   both `*-capable` = `yes`, status-bar style selectable in the panel (`default` recommended),
    `theme-color: white`, `apple-touch-icon`, `manifest.webmanifest` (`display: standalone`, white colours).
 10. **iOS version from the UA:** Safari 26+ freezes the OS token (`iPhone OS 18_7`); the real version is in `Version/27.0.1`. Use
     `max(OS, Version)`. Firefox/Chrome on iOS have no `Version` token. `resize` / `scroll` / `visualViewport` events fire hundreds of times while the
@@ -89,36 +85,38 @@ scrollable area). `html` stays white.
 
 ## 3. Home Screen app (standalone)
 
-* **The large iOS 27 top blur only exists here**, not in a Safari/Firefox tab (tab: small blur, as high as the top iOS controls). **[device]**
-  `safe-area-inset-top` = **62px**, bottom = **34px**; the page is drawn under the status bar even with `apple-mobile-web-app-status-bar-style: default`. **[device]**
-* **iOS starts the Home Screen app with a STALE viewport.** **[device]** At launch `innerHeight` = `100dvh` = `100svh` = `html.clientHeight` = **812**
-  (= 874 − 62) while the screen is 874 and `100lvh` is already 874; a footer positioned with `100dvh` sits 62px too high with a white strip below it
-  until the first scroll/pull makes `innerHeight` / `dvh` jump to 874 (`html.clientHeight` stays 812).
-* **Fix, standalone only: `@media (display-mode: standalone) { .screen { height: 100lvh } }`.** There are no collapsing toolbars in a Home Screen app,
-  so `lvh` is the true full height from the first frame. The footer stays plain `bottom: 0`. **[device: works]** Side effect: the rect (874) is taller than
-  the stale layout viewport (812), so the document can scroll by 62px (it already could after the first pull).
-* **Blur area:** the blur height cannot be reduced and the space is not usable for content. A fixed, wide, coloured strip at the top ("blur shield")
-  only turns the blur area into one coloured area (no extra usable height). **[device]** Use the area with the fixed white header whose padding covers
-  `safe-area-inset-top` (the blur then sits over white): header in the Home Screen app **[untested]**. (The earlier `v3.0` solution without a
-  header was +10px content padding below the inset: **[device: works]**.) Reduce Transparency in iOS removes the veil. **[sources]**
+**iOS 27 adds a rather large blur at the top edge of installed web apps.** The system draws a translucent veil over the top of the page (not the page itself):
+it reaches well below the status bar and washes out whatever sits there. No meta tag or CSS property turns it off; the workarounds that people report (an opaque
+`position: fixed` or `sticky` element with a background at the top edge) only colour the blurred area. The iOS accessibility setting *Reduce Transparency* removes it.
+**[sources]**
 
-## 4. Tried and rejected
+* r/PWA: [iOS 27 beta blurs the top edge of installed PWAs](https://www.reddit.com/r/PWA/comments/1w5mqj1/ios_27_beta_blurs_the_top_edge_of_installed_pwas/)
+* [grappa-irc#2190](https://github.com/vjt/grappa-irc/issues/2190): measurements of the band (inset 62px, a veil that fades out at about 100 CSS px)
+* [milkbox#55](https://github.com/kypflug/milkbox/pull/55): "Keep iOS 27's top blur off the installed app" (no meta tag or CSS property found; WebKit looks at a fixed box at the top edge)
+* [OJapp tips: removing the top blur in iOS 27 PWAs](https://tips.ojapp.app/en/ios-27-pwa-top-blur-workaround-2/) (workarounds, e.g. a sticky header with background and inset padding)
+* [meshmonitor#5286](https://github.com/Yeraze/meshmonitor/issues/5286): status-bar backdrop blur bleeds into a fixed header
+* [pullcord#97](https://github.com/jakswa/pullcord/pull/97): cover the top safe-area inset so the header does not blur under the status bar
+* [rhams.es#12](https://github.com/rhamses/rhams.es/pull/12): blur content under the iPhone status bar; [romm#5075](https://github.com/rommapp/romm/pull/5075): draw under the iOS status bar and respect the safe-area insets
+* [Daniel Pietzsch: a blurry status bar for PWAs on iOS](https://danielpietzsch.com/articles/how-to-create-a-blurry-status-bar-for-pwas-on-ios)
 
-* Footer placed with `top: calc(100dvh − h)`, with JS (`visualViewport` every frame), or with `top: calc(100lvh − h)`: lags/jumps or not needed.
-* "Blur shield" strip at the top (twice), a red top strip to colour the status bar zone in the inner page: no gain.
-* `100vh` / `100lvh` in a tab: too tall (38px). `-webkit-fill-available`, `height: 100%`, JS `innerHeight`: available as modes in the panel, not better.
-* Reference site `de.ra.co` (read-only analysis): page scroll, fixed 60px header + sticky stack with hard-coded `top` values, **no footer**, no `viewport-fit`, no
-  safe-area usage, no `dvh/svh/lvh`, `theme-color` black with a black header. It avoids the bottom-edge problem by having nothing at the bottom.
+Results on the device:
 
-## 5. Still to test
+* **The large blur only exists in the installed app**; in a Safari/Firefox tab it is small, as high as the top iOS controls. **[device]** In the installed app
+  `safe-area-inset-top` = **62px**, `safe-area-inset-bottom` = **34px**, and the page is drawn under the status bar even with `apple-mobile-web-app-status-bar-style: default`.
+* **Use the area with a fixed, opaque header whose padding covers the inset** (section 1): the blur sits over the header, the content starts below it. **[device: works]**
+  A coloured strip alone (a "blur shield") only turns the blurred area into one coloured area and gives no extra usable height. **[device]**
+* **iOS starts the installed app with a stale viewport.** At launch `innerHeight` = `100dvh` = `100svh` = `html.clientHeight` = **812** (= 874 − 62) while the screen is 874 and
+  `100lvh` is already 874; something positioned with `100dvh` sits 62px too high (white strip below the footer) until the first scroll/pull makes `innerHeight` / `dvh` jump to 874
+  (`html.clientHeight` stays 812). **[device]**
+* **Fix: `@media (display-mode: standalone) { .screen { height: 100lvh } }`.** There are no collapsing toolbars in an installed app, so `lvh` is the true full height
+  from the first frame; the footer stays plain `bottom: 0`. **[device: works]** Side effect: the container (874) is taller than the stale layout viewport (812), so the
+  document can scroll by 62px.
 
-- [ ] The fixed header **in the Home Screen app** (blur over white, content below it, `lvh` rect, footer).
-- [ ] Firefox on iOS: footer with the 34px padding; record `innerHeight` / units / insets (*Copy JSON*); Firefox Home Screen app.
-- [ ] `apple-mobile-web-app-status-bar-style` `default` / `black` / `black-translucent` in the Home Screen app (re-add the icon each time).
-- [ ] Last content scrolls above the footer on the phone; pull-down colour in Firefox after removing all red.
+## 4. Still to test
+
 - [ ] Landscape (side insets, footer, `innerHeight`); iPad.
 
-## 6. Run and test
+## 5. Run and test
 
 ```bash
 npm install
@@ -134,7 +132,7 @@ npm run preview    # serve dist/ on the LAN
 Phone and Mac on the same Wi-Fi (or a tunnel). Test matrix: iOS Safari tab · Firefox on iOS tab (a WKWebView shell: same WebKit, own toolbars and
 insets) · Home Screen app (Share → *Add to Home Screen*, keep *Open as Web App* on).
 
-## 7. The debug tooling
+## 6. The debug tooling
 
 Settings live in the URL (so *Reload* keeps them, there is no reload button in a Home Screen app): `?h=<height mode>&sb=<status bar style>&bar=<footer strategy>`.
 *Copy JSON* copies all measurements for comparing devices. A round button at the top right (100px below the top) switches between the two pages.

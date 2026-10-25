@@ -8,7 +8,7 @@ defineProps<{ metrics: Metrics | null; barMode: BarMode }>()
 
 <template>
   <footer class="bottom-bar" aria-hidden="true">
-    <strong>fixed bottom bar (LIQUIDO footer) · {{ barMode }}</strong>
+    <strong>fixed bottom bar (footer) · {{ barMode }}</strong>
     <span v-if="metrics?.bar && metrics.units.dvh != null">
       bar bottom {{ +metrics.bar.bottom.toFixed(1) }}px · 100dvh {{ +metrics.units.dvh.toFixed(1) }}px · innerHeight
       {{ metrics.window.innerHeight }}px

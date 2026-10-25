@@ -57,7 +57,7 @@ const { mode, barMode, statusBar } = useSettings('inner', measure)
 </template>
 
 <style>
-/* LIQUIDO app background on #app (viewport sized; the content scrolls over it), see style.css. */
+/* App background on #app (viewport sized; the content scrolls over it), see style.css. */
 #app {
   background: var(--app-gradient);
 }

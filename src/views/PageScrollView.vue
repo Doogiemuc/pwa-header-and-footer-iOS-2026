@@ -53,7 +53,7 @@ const { mode, barMode, statusBar } = useSettings('page', measure)
 </template>
 
 <style scoped>
-/* LIQUIDO app background over the whole scrollable document (see style.css). */
+/* App background over the whole scrollable document (see style.css). */
 .content {
   background: var(--app-gradient);
 }

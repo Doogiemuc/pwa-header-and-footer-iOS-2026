@@ -5,7 +5,7 @@
      blur / status bar (it was red in v1.0, blue in the first inner-scroll version, white now). theme-color: see index.html. */
   --gap: #fff;
   --edge: #ffeb3b;
-  /* Main app background of the LIQUIDO frontend, applied to #app below. */
+  /* Main app background gradient, applied to #app / .content (see below). */
   --app-gradient: radial-gradient(120% 70% at 50% 10%, #ffffff 0%, #eef5fc 45%, #dbe8f6 100%);
   --blue: #0033cc;
 
@@ -29,7 +29,7 @@ body {
   margin: 0;
 }
 
-/* The LIQUIDO app background (--app-gradient) is applied per page: `/inner.html` on #app (viewport sized, the content scrolls over it),
+/* The app background (--app-gradient) is applied per page: `/inner.html` on #app (viewport sized, the content scrolls over it),
    `/` on .content (the document is taller than #app there, the gradient has to cover the whole scrollable area). */
 
 /* The rectangle: exactly as high as the screen (height strategy below). It has no colour any more (it was red in v1.0/v2.0,
@@ -63,7 +63,7 @@ html:not([data-bar='off']) .content {
 }
 
 /*
-  Colours (both pages): html = white (--gap, the canvas colour behind the iOS blur), the LIQUIDO gradient on #app (inner) / .content (page), theme-color = white (index.html / inner.html). Everything that is white-on-dark elsewhere is dark here
+  Colours (both pages): html = white (--gap, the canvas colour behind the iOS blur), the app gradient on #app (inner) / .content (page), theme-color = white (index.html / inner.html). Everything that is white-on-dark elsewhere is dark here
   (--ruler), and the debug boxes are opaque grey (--box-bg = 35 % black over the former dark grey .content).
 */
 .screen {

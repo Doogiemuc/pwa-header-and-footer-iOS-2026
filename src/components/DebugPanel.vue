@@ -143,8 +143,8 @@ const sections = computed<Section[]>(() => {
           : { label: 'rect scrollTop', value: px(r?.scrollTop) },
         {
           label: 'visualVP scale',
-          value: vv ? `${+vv.scale.toFixed(3)}${Math.abs(vv.scale - 1) > 0.005 ? ' (zoomed!)' : ''}` : 'n/a',
-          status: vv && Math.abs(vv.scale - 1) > 0.005 ? 'bad' : undefined,
+          value: vv ? `${+vv.scale.toFixed(3)}${vv.scale !== 1 ? ' (zoomed!)' : ''}` : 'n/a',
+          status: vv && vv.scale !== 1 ? 'bad' : undefined,
         },
       ],
     },
@@ -322,8 +322,8 @@ const sections = computed<Section[]>(() => {
         { label: 'visualVP pageTop', value: vv ? px(vv.pageTop) : 'n/a' },
         {
           label: 'visualVP scale',
-          value: vv ? `${+vv.scale.toFixed(3)}${Math.abs(vv.scale - 1) > 0.005 ? ' (zoomed!)' : ''}` : 'n/a',
-          status: vv && Math.abs(vv.scale - 1) > 0.005 ? 'bad' : undefined,
+          value: vv ? `${+vv.scale.toFixed(3)}${vv.scale !== 1 ? ' (zoomed!)' : ''}` : 'n/a',
+          status: vv && vv.scale !== 1 ? 'bad' : undefined,
         },
         { label: '@media W × H', value: `${px(m.media.width)} × ${px(m.media.height)}` },
         { label: 'screen − inner', value: `${px(m.screen.heightOriented - m.window.innerHeight)} (UI outside page)` },

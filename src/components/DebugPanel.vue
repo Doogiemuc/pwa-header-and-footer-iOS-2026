@@ -27,7 +27,6 @@ const props = defineProps<{
 }>()
 const mode = defineModel<HeightMode>('mode', { required: true })
 const statusBar = defineModel<StatusBarStyle>('statusBar', { default: 'black-translucent' })
-const blurShield = defineModel<boolean>('blurShield', { default: false })
 // Bottom bar strategy (both views have the bar).
 const barMode = defineModel<BarMode>('barMode', { default: 'bottom0' })
 
@@ -309,7 +308,6 @@ const sections = computed<Section[]>(() => {
       rows: [
         { label: 'expected here', value: e.expectTopBlur ? 'yes (iOS ≥ 27 or frozen UA)' : 'no' },
         { label: 'Reduce Transp.', value: m.reduceTransparency },
-        { label: 'blur shield', value: blurShield.value ? 'ON (fixed 12px dark-red strip at the very top)' : 'off' },
       ],
     },
     {
@@ -389,7 +387,7 @@ const copyState = ref('Copy JSON')
 async function copyJson() {
   const text = JSON.stringify(
     {
-      settings: { view: props.view, mode: mode.value, statusBarStyle: statusBar.value, blurShield: blurShield.value, bar: barMode.value },
+      settings: { view: props.view, mode: mode.value, statusBarStyle: statusBar.value, bar: barMode.value },
       env: props.env,
       metrics: props.metrics,
       events: props.events,
@@ -445,10 +443,6 @@ function reload() {
         <select v-model="statusBar" aria-label="Status bar style">
           <option v-for="s in STATUS_BAR_STYLES" :key="s" :value="s">{{ s }}</option>
         </select>
-      </label>
-      <label class="check">
-        <input v-model="blurShield" type="checkbox" />
-        iOS 27 blur shield (fixed strip at the very top)
       </label>
       <label class="check">
         blue bar

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import AppHeader from '../components/AppHeader.vue'
+import BlurShield from '../components/BlurShield.vue'
 import BottomBar from '../components/BottomBar.vue'
 import DebugPanel from '../components/DebugPanel.vue'
 import EdgeOverlay from '../components/EdgeOverlay.vue'
@@ -23,7 +25,7 @@ const bar = ref<{ $el: HTMLElement } | null>(null)
 const barEl = computed(() => bar.value?.$el ?? null)
 // The rect has overflow: visible, so its scrollHeight / clientHeight describe the 200 % content.
 const { metrics, events, lastEvent, measure } = useViewportMetrics(rectEl, rectEl, contentEl, barEl)
-const { mode, barMode, statusBar } = useSettings('page', measure)
+const { mode, barMode, statusBar, blurShield } = useSettings('page', measure)
 </script>
 
 <template>
@@ -34,6 +36,7 @@ const { mode, barMode, statusBar } = useSettings('page', measure)
         view="page"
         v-model:mode="mode"
         v-model:status-bar="statusBar"
+        v-model:blur-shield="blurShield"
         v-model:bar-mode="barMode"
         :env="env"
         :metrics="metrics"
@@ -46,6 +49,15 @@ const { mode, barMode, statusBar } = useSettings('page', measure)
     <FooterLine />
   </main>
 
+  <AppHeader />
+  <BlurShield v-if="blurShield" />
   <ViewSwitch target="inner" />
   <BottomBar v-if="barMode !== 'off'" ref="bar" :metrics="metrics" :bar-mode="barMode" />
 </template>
+
+<style scoped>
+/* LIQUIDO app background over the whole scrollable document (see style.css). */
+.content {
+  background: var(--app-gradient);
+}
+</style>

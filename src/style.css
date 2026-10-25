@@ -5,12 +5,17 @@
      blur / status bar (it was red in v1.0, blue in the first inner-scroll version, white now). theme-color: see index.html. */
   --gap: #fff;
   --edge: #ffeb3b;
+  /* Main app background of the LIQUIDO frontend, applied to #app below. */
+  --app-gradient: radial-gradient(120% 70% at 50% 10%, #ffffff 0%, #eef5fc 45%, #dbe8f6 100%);
   --blue: #0033cc;
 
   --sat: env(safe-area-inset-top, 0px);
   --sar: env(safe-area-inset-right, 0px);
   --sab: env(safe-area-inset-bottom, 0px);
   --sal: env(safe-area-inset-left, 0px);
+  /* The fixed header: its content height, and the total including the status bar area (safe-area-inset-top). */
+  --header-h: 56px;
+  --header-total: calc(var(--header-h) + var(--sat));
 
   background: var(--gap);
   color: #fff;
@@ -23,6 +28,9 @@
 body {
   margin: 0;
 }
+
+/* The LIQUIDO app background (--app-gradient) is applied per page: `/inner.html` on #app (viewport sized, the content scrolls over it),
+   `/` on .content (the document is taller than #app there, the gradient has to cover the whole scrollable area). */
 
 /* The rectangle: exactly as high as the screen (height strategy below). It has no colour any more (it was red in v1.0/v2.0,
    and was hidden below the white .content anyway); its edges are the yellow lines of EdgeOverlay. */
@@ -43,15 +51,8 @@ body {
   min-height: 200%;
   /* Below the status bar inset; clear of notch sides. The bottom padding keeps the last content scrollable ABOVE the
      fixed footer (see below). */
-  padding: calc(var(--sat) + 12px) max(12px, var(--sar)) calc(var(--sab) + 12px) max(12px, var(--sal));
+  padding: calc(var(--header-total) + 12px) max(12px, var(--sar)) calc(var(--sab) + 12px) max(12px, var(--sal));
 }
-/* Home Screen app only: the large iOS 27 blur at the top needs ~10px more room below the status bar inset. */
-@media (display-mode: standalone) {
-  .content {
-    padding-top: calc(var(--sat) + 22px); /* 12px + 10px */
-  }
-}
-
 /* A fixed footer covers the bottom of the viewport: reserve its full height (incl. safe-area padding) at the end of the
    scrollable content, otherwise the last content can never be scrolled out from behind it. */
 html:not([data-bar='off']) .content {
@@ -62,16 +63,12 @@ html:not([data-bar='off']) .content {
 }
 
 /*
-  Colours (both pages): html = white (--gap), .content = white (it covers the whole scrollable area, so the red rect below it
-  is not visible), theme-color = white (index.html / inner.html). Everything that is white-on-dark elsewhere is dark here
+  Colours (both pages): html = white (--gap, the canvas colour behind the iOS blur), the LIQUIDO gradient on #app (inner) / .content (page), theme-color = white (index.html / inner.html). Everything that is white-on-dark elsewhere is dark here
   (--ruler), and the debug boxes are opaque grey (--box-bg = 35 % black over the former dark grey .content).
 */
 .screen {
   --ruler: #000; /* ruler lines/labels and safe-area guides */
   --box-bg: rgb(110 110 110);
-}
-.content {
-  background-color: #fff;
 }
 .page-title {
   color: #000;

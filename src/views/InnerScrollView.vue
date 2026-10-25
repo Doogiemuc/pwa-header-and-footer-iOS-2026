@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import AppHeader from '../components/AppHeader.vue'
+import BlurShield from '../components/BlurShield.vue'
 import BottomBar from '../components/BottomBar.vue'
 import DebugPanel from '../components/DebugPanel.vue'
 import EdgeOverlay from '../components/EdgeOverlay.vue'
@@ -25,7 +27,7 @@ const contentEl = ref<HTMLElement | null>(null)
 const bar = ref<{ $el: HTMLElement } | null>(null)
 const barEl = computed(() => bar.value?.$el ?? null)
 const { metrics, events, lastEvent, measure } = useViewportMetrics(rectEl, scrollerEl, contentEl, barEl)
-const { mode, barMode, statusBar } = useSettings('inner', measure)
+const { mode, barMode, statusBar, blurShield } = useSettings('inner', measure)
 </script>
 
 <template>
@@ -37,6 +39,7 @@ const { mode, barMode, statusBar } = useSettings('inner', measure)
           view="inner"
           v-model:mode="mode"
           v-model:status-bar="statusBar"
+          v-model:blur-shield="blurShield"
           v-model:bar-mode="barMode"
           :env="env"
           :metrics="metrics"
@@ -50,9 +53,18 @@ const { mode, barMode, statusBar } = useSettings('inner', measure)
     <EdgeOverlay :metrics="metrics" />
   </main>
 
+  <AppHeader />
+  <BlurShield v-if="blurShield" />
   <ViewSwitch target="page" />
   <BottomBar v-if="barMode !== 'off'" ref="bar" :metrics="metrics" :bar-mode="barMode" />
 </template>
+
+<style>
+/* LIQUIDO app background on #app (viewport sized; the content scrolls over it), see style.css. */
+#app {
+  background: var(--app-gradient);
+}
+</style>
 
 <style scoped>
 .screen {

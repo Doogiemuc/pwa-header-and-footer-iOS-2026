@@ -94,6 +94,19 @@ scrolling away. Old links with `?scroll=inner` on `/` redirect to `/inner.html`.
   (it already could after the first pull); the panel's "viewport vs screen" row shows the stale viewport.
 * The panel judges "fills the screen" against the screen height in the Home Screen app (not `innerHeight`).
 
+### LIQUIDO header experiment (after `v3.0`)
+
+* **Header** (`AppHeader.vue`, both pages): `position: fixed; top: 0`, white, the text `HEADER` centered (no icon library, no brand text). Height
+  `56px + env(safe-area-inset-top)`: the inset is **padding**, so in a Home Screen app the white header also covers the status bar area (and the iOS 27 blur
+  sits over white); its content starts below the inset. Page content starts below it (`.content` padding-top = header height + 12px). This replaces the
+  standalone-only "+10px" top padding of `v3.0`. **[untested]** on the phone.
+* **Page background = the LIQUIDO app gradient** `--app-gradient: radial-gradient(120% 70% at 50% 10%, #ffffff 0%, #eef5fc 45%, #dbe8f6 100%)`:
+  on `#app` for `/inner.html` (viewport sized, content scrolls over it), on `.content` for `/` (the document is taller than `#app` there, so the
+  gradient must sit on the element that spans the whole scrollable area). `html` stays white (the canvas colour behind the blur).
+* **Blur shield is back** (checkbox "iOS 27 blur shield", URL `?shield=1`, off by default): a fixed, full-width, 12px dark-red strip at the very
+  top, above the header (z-index 100), to test whether it changes the iOS 27 top blur now that the header exists. Note that the header is
+  itself a fixed, wide, opaque box at the top edge, which is the thing WebKit reportedly looks at. **[untested]**
+
 ### Traps and what we tried
 
 * **Inner scroll container** (`/inner.html`, "rect scrolls inside"): the bottom iOS controls then **don't change size**
@@ -186,7 +199,7 @@ layer was prepared but not used.)
 * **Verdict** box: rect height vs `innerHeight`, `visualViewport.height` and screen height, rect top/bottom,
   whether the page can scroll (rect too tall), and whether the content really is 200 %.
 
-Settings are kept in the URL (`?h=dvh&sb=black-translucent&bar=bottom0`), so *Reload* (there is no reload button in a
+Settings are kept in the URL (`?h=dvh&sb=black-translucent&bar=bottom0&shield=0`), so *Reload* (there is no reload button in a
 Home Screen app) keeps them. *Copy JSON* copies all values for comparing devices.
 
 ## Summary box and blue bottom bar (both pages)
@@ -258,8 +271,8 @@ Sources: [grappa-irc#2190](https://github.com/vjt/grappa-irc/issues/2190) (measu
 
 * `index.html` + `src/main-page.ts` + `src/views/PageScrollView.vue`: the **page scrolls** page (rectangle, content, blue bottom bar and its CSS)
 * `inner.html` + `src/main-inner.ts` + `src/views/InnerScrollView.vue`: the **rect scrolls inside** page
-* `src/components/`: `ScrollRuler`, `EdgeOverlay`, `FooterLine`, `BottomBar`, `ViewSwitch` (shared by both pages); `src/lib/viewLinks.ts`: link to the other page
-* `src/composables/useSettings.ts`: URL-persisted settings (height mode, status-bar style, bar strategy)
+* `src/components/`: `AppHeader`, `BlurShield`, `ScrollRuler`, `EdgeOverlay`, `FooterLine`, `BottomBar`, `ViewSwitch` (shared by both pages); `src/lib/viewLinks.ts`: link to the other page
+* `src/composables/useSettings.ts`: URL-persisted settings (height mode, status-bar style, bar strategy, blur shield)
 * `src/components/DebugPanel.vue`: verdict, settings, debug tables
 * `src/composables/useViewportMetrics.ts`: all measurements, height modes
 * `src/lib/environment.ts`: browser / iOS version / Home Screen detection, model guess

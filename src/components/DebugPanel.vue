@@ -48,14 +48,15 @@ const yesNo = (b: boolean | undefined) => (b === undefined ? 'undefined' : b ? '
 const verdict = computed(() => {
   const m = props.metrics
   if (!m?.rect) return null
-  const target = m.window.innerHeight
+  // A Home Screen app has no collapsing toolbars: its visible height is the screen height, even while iOS still reports a stale innerHeight.
+  const target = props.env.isHomeScreenApp ? m.screen.heightOriented : m.window.innerHeight
   const delta = m.rect.height - target
   const fills = near(delta, 0) && near(m.rect.top, 0)
   const screenDelta = m.screen.heightOriented - m.rect.height
   return {
     fills,
     headline: fills
-      ? `✓ Fills the viewport exactly: ${px(m.rect.height)}`
+      ? `✓ Fills the ${props.env.isHomeScreenApp ? 'screen' : 'viewport'} exactly: ${px(m.rect.height)}`
       : `✗ Rect ${px(m.rect.height)} vs viewport ${px(target)} (${signed(delta)}, top ${px(m.rect.top)})`,
     screenLine: near(screenDelta, 0)
       ? `✓ = screen height ${px(m.screen.heightOriented)} (true full screen)`
@@ -114,6 +115,8 @@ const sections = computed<Section[]>(() => {
   const r = m.rect
   const bar = m.bar
   const docOverflow = m.window.scrollHeight - m.window.clientHeight
+  // Home Screen app: html.clientHeight (the layout viewport) is smaller than the screen although the web view covers all of it.
+  const staleViewport = e.isHomeScreenApp && m.window.clientHeight < m.screen.heightOriented - TOLERANCE
   const unitRow = (label: string, v: number | null): Row => ({
     label,
     value: v == null ? 'not supported' : px(v),
@@ -156,6 +159,17 @@ const sections = computed<Section[]>(() => {
       rows: r
         ? [
             { label: 'rect height', value: px(r.height) },
+            ...(e.isHomeScreenApp
+              ? [
+                  {
+                    label: 'viewport vs screen',
+                    value: staleViewport
+                      ? `layout viewport ${px(m.window.clientHeight)} < screen ${px(m.screen.heightOriented)}: stale launch viewport (iOS only updates innerHeight after the first scroll/pull)`
+                      : `layout viewport ${px(m.window.clientHeight)} = screen`,
+                    status: (staleViewport ? 'bad' : 'ok') as Status,
+                  },
+                ]
+              : []),
             {
               label: 'vs innerHeight',
               value: `${px(m.window.innerHeight)} (${signed(r.height - m.window.innerHeight)})`,
@@ -174,7 +188,7 @@ const sections = computed<Section[]>(() => {
             {
               label: 'rect top / bottom',
               value: `${px(r.top)} / ${px(r.bottom)}`,
-              status: near(r.top, 0) && near(r.bottom, m.window.innerHeight) ? 'ok' : 'bad',
+              status: near(r.top, 0) && near(r.bottom, e.isHomeScreenApp ? m.screen.heightOriented : m.window.innerHeight) ? 'ok' : 'bad',
             },
             pageMode.value
               ? {
@@ -184,8 +198,8 @@ const sections = computed<Section[]>(() => {
                 }
               : {
                   label: 'page scrollable by',
-                  value: docOverflow > 0 ? `${px(docOverflow)} (rect taller than viewport)` : '0px',
-                  status: docOverflow > 0 ? 'bad' : 'ok',
+                  value: docOverflow > 0 ? `${px(docOverflow)} (${staleViewport ? 'iOS layout viewport is stale, see below' : 'rect taller than viewport'})` : '0px',
+                  status: docOverflow > 0 ? (staleViewport ? 'info' : 'bad') : 'ok',
                 },
             {
               label: 'content / rect',

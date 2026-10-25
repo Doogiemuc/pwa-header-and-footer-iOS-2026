@@ -77,6 +77,23 @@ scrolling away. Old links with `?scroll=inner` on `/` redirect to `/inner.html`.
 * While the toolbar animates, `resize` / `scroll` / `visualViewport.resize` fire hundreds of times (a test session logged 609
   scroll events). Never run expensive work (e.g. `matchMedia` searches, layout reads) per event.
 
+### Home Screen app (standalone) — iPhone 16 Pro, iOS 27.0.1, `apple-mobile-web-app-status-bar-style: default`
+
+* The large iOS 27 top blur only exists here, not in a Safari/Firefox tab. **[device]** `safe-area-inset-top` = **62px**, `safe-area-inset-bottom` = **34px**; the
+  page is drawn under the status bar (even with the style `default`). Content needs ~10px more room below the inset. **[device]**
+  Standalone only: `.content` padding-top = inset + 22px. **[device: works]** (v3.0)
+* **iOS starts the Home Screen app with a STALE viewport** **[device]**: at launch `innerHeight` = `100dvh` = `100svh` = `html.clientHeight` = **812px**
+  (= 874 − 62), while the screen is 874px and `100lvh` is already 874. The footer (`top: calc(100dvh − bar)`) therefore sits 62px too high with a
+  white strip below it (not a doubled bottom inset: the strip is 62px, the footer bar is the correct 56 + 34 = 90px). After the first scroll/pull
+  `innerHeight` / `dvh` / `visualViewport.height` jump to 874 and the footer drops into place; `html.clientHeight` stays 812.
+* **Fix, confirmed by the owner on the phone in `v3.0`** **[device: works]** (standalone only, `@media (display-mode: standalone)`): there are no collapsing toolbars in a
+  Home Screen app, so the rectangle uses **`100lvh`** (874 from the first frame). The footer stays the plain **`position: fixed; bottom: 0`**:
+  it works, there is no need to calculate its position (an attempt with `top: calc(100lvh − footer height)` was tried and reverted). I did not
+  verify separately whether `bottom: 0` alone, without the `lvh` rect, would already have been enough.
+  Side effect: the rect (874) is taller than the stale layout viewport (812), so the document can scroll by 62px
+  (it already could after the first pull); the panel's "viewport vs screen" row shows the stale viewport.
+* The panel judges "fills the screen" against the screen height in the Home Screen app (not `innerHeight`).
+
 ### Traps and what we tried
 
 * **Inner scroll container** (`/inner.html`, "rect scrolls inside"): the bottom iOS controls then **don't change size**
@@ -87,7 +104,8 @@ scrolling away. Old links with `?scroll=inner` on `/` redirect to `/inner.html`.
   removed again on request; it is not in the code.
 * iOS version from the UA: Safari 26+ freezes the OS token (`18_7`); the real version is in `Version/x`. Use `max(OS, Version)`.
   Firefox/Chrome on iOS have no `Version` token.
-* **Reference version = git tag `v1.0`** (commit `089e533`, `/` "Full Page scrolls"): on the owner's iPhone 16 Pro (iOS 27.0.1, Safari)
+* **Latest good version = git tag `v3.0`** (works in Safari, Firefox and as a Home Screen app on the owner's phone; the owner leans to the
+  "Inner DIV scrolls" page for LIQUIDO). Older reference: **git tag `v1.0`** (commit `089e533`, `/` "Full Page scrolls"): on the owner's iPhone 16 Pro (iOS 27.0.1, Safari)
   it shows only a **small top blur, as high as the top iOS controls**: exactly the wanted behaviour. **[device]**
   **The larger blur appears only when the page is added to the Home Screen** (installed web app), not in a Safari/Firefox tab. **[device]**
   So the "different blur heights" seen while building this POC were largely Safari tab vs Home Screen app, not the page's CSS.
@@ -105,7 +123,7 @@ scrolling away. Old links with `?scroll=inner` on `/` redirect to `/inner.html`.
 - [ ] `apple-mobile-web-app-status-bar-style` `default` / `black` / `black-translucent` in the Home Screen app (re-add the icon each time):
   top inset, content under the status bar, colour of the bar.
 - [ ] Firefox on iOS: footer after the 34px padding fix; record `innerHeight` / units / insets (Copy JSON).
-- [ ] Safari Home Screen app (standalone): top / bottom insets, does the footer sit on the home indicator, top blur, status bar.
+- [x] Safari Home Screen app: standalone fixes (top padding + 10px, `lvh` rect, footer `bottom: 0`) verified by the owner in `v3.0`.
 - [ ] Firefox Home Screen app.
 - [ ] Landscape (side insets, footer, `innerHeight`).
 - [ ] iPad.

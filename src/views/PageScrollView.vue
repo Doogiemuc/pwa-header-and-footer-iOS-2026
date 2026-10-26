@@ -24,7 +24,7 @@ const bar = ref<{ $el: HTMLElement } | null>(null)
 const barEl = computed(() => bar.value?.$el ?? null)
 // The rect has overflow: visible, so its scrollHeight / clientHeight describe the 200 % content.
 const { metrics, events, lastEvent, measure } = useViewportMetrics(rectEl, rectEl, contentEl, barEl)
-const { mode, barMode, statusBar } = useSettings('page', measure)
+const { mode, statusBar } = useSettings('page', measure)
 </script>
 
 <template>
@@ -35,7 +35,6 @@ const { mode, barMode, statusBar } = useSettings('page', measure)
         view="page"
         v-model:mode="mode"
         v-model:status-bar="statusBar"
-        v-model:bar-mode="barMode"
         :env="env"
         :metrics="metrics"
         :events="events"
@@ -49,7 +48,7 @@ const { mode, barMode, statusBar } = useSettings('page', measure)
 
   <AppHeader />
   <ViewSwitch target="inner" />
-  <BottomBar v-if="barMode !== 'off'" ref="bar" :metrics="metrics" :bar-mode="barMode" />
+  <BottomBar ref="bar" :metrics="metrics" />
 </template>
 
 <style scoped>

@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { viewHref } from '../lib/viewLinks'
 import { STATUS_BAR_STYLES, type StatusBarStyle } from '../composables/useSettings'
-import { BAR_MODES, HEIGHT_MODES, type BarMode, type HeightMode, type Metrics } from '../composables/useViewportMetrics'
+import { HEIGHT_MODES, type HeightMode, type Metrics } from '../composables/useViewportMetrics'
 import type { EnvInfo } from '../lib/environment'
 
 type Status = 'ok' | 'bad' | 'info'
@@ -26,9 +26,7 @@ const props = defineProps<{
   view: 'page' | 'inner'
 }>()
 const mode = defineModel<HeightMode>('mode', { required: true })
-const statusBar = defineModel<StatusBarStyle>('statusBar', { default: 'black-translucent' })
-// Bottom bar strategy (both views have the bar).
-const barMode = defineModel<BarMode>('barMode', { default: 'bottom0' })
+const statusBar = defineModel<StatusBarStyle>('statusBar', { default: 'default' })
 
 const TOLERANCE = 1 // px – unit values can be fractional (e.g. 873.67)
 
@@ -43,6 +41,7 @@ const displayLabel = (d: string) => (d === 'standalone' ? 'home screen app' : d)
 const metaContent = (name: string) => document.querySelector<HTMLMetaElement>(`meta[name="${name}"]`)?.content ?? null
 const linkHref = (rel: string) => document.querySelector<HTMLLinkElement>(`link[rel="${rel}"]`)?.getAttribute('href') ?? null
 const NOT_APPLE = ' · not on Apple\'s MetaTags page'
+const MOBILE_TAGS_TITLE = 'Mobile HTML tags (<head>)'
 const yesNo = (b: boolean | undefined) => (b === undefined ? 'undefined' : b ? 'yes' : 'no')
 
 const verdict = computed(() => {
@@ -149,7 +148,7 @@ const sections = computed<Section[]>(() => {
       ],
     },
     {
-      title: 'Mobile HTML tags (<head>)',
+      title: MOBILE_TAGS_TITLE,
       open: true,
       rows: mobileTagRows(e.navigatorStandalone),
     },
@@ -269,7 +268,6 @@ const sections = computed<Section[]>(() => {
       open: false,
       rows: bar
         ? [
-            { label: 'strategy', value: `${BAR_MODES[barMode.value].label}: ${BAR_MODES[barMode.value].description}` },
             { label: 'bar top / bottom', value: `${px(bar.top)} / ${px(bar.bottom)}` },
             ...(r
               ? [
@@ -387,7 +385,7 @@ const copyState = ref('Copy JSON')
 async function copyJson() {
   const text = JSON.stringify(
     {
-      settings: { view: props.view, mode: mode.value, statusBarStyle: statusBar.value, bar: barMode.value },
+      settings: { view: props.view, mode: mode.value, statusBarStyle: statusBar.value },
       env: props.env,
       metrics: props.metrics,
       events: props.events,
@@ -444,12 +442,6 @@ function reload() {
           <option v-for="s in STATUS_BAR_STYLES" :key="s" :value="s">{{ s }}</option>
         </select>
       </label>
-      <label class="check">
-        blue bar
-        <select v-model="barMode" aria-label="Blue bottom bar strategy">
-          <option v-for="(b, key) in BAR_MODES" :key="key" :value="key">{{ b.label }}</option>
-        </select>
-      </label>
       <small class="legend">
         <span class="swatch edge"></span>rect edges ·
         <span class="swatch safe"></span>safe area
@@ -459,19 +451,26 @@ function reload() {
     </div>
 
     <div class="sections">
-      <details v-for="section in sections" :key="section.title" class="box" :open="section.open">
-        <summary>{{ section.title }}</summary>
-        <dl>
-          <template v-for="row in section.rows" :key="row.label">
-            <dt>{{ row.label }}</dt>
-            <dd :class="row.status">
-              <span v-if="row.status === 'ok'" class="badge">✓</span>
-              <span v-else-if="row.status === 'bad'" class="badge">✗</span>
-              {{ row.value }}
-            </dd>
-          </template>
-        </dl>
-      </details>
+      <template v-for="section in sections" :key="section.title">
+        <details class="box" :open="section.open">
+          <summary>{{ section.title }}</summary>
+          <dl>
+            <template v-for="row in section.rows" :key="row.label">
+              <dt>{{ row.label }}</dt>
+              <dd :class="row.status">
+                <span v-if="row.status === 'ok'" class="badge">✓</span>
+                <span v-else-if="row.status === 'bad'" class="badge">✗</span>
+                {{ row.value }}
+              </dd>
+            </template>
+          </dl>
+        </details>
+        <!-- Plain text input to test the on-screen keyboard (scroll it up and down, watch header, footer and visualViewport). -->
+        <label v-if="section.title === MOBILE_TAGS_TITLE" class="box test-input">
+          <span>Test input</span>
+          <input type="text" />
+        </label>
+      </template>
     </div>
   </div>
 </template>
@@ -569,9 +568,28 @@ input[type='checkbox'] {
   columns: 26em;
   column-gap: 6px;
 }
-.sections > details {
+.sections > details,
+.sections > .test-input {
   break-inside: avoid;
   margin-bottom: 6px;
+}
+
+.test-input {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: 700;
+}
+.test-input input {
+  box-sizing: border-box;
+  width: 100%;
+  /* ≥ 16px: smaller makes iOS zoom in on focus */
+  font: 16px/1.3 system-ui, -apple-system, sans-serif;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  color: #000;
+  background: #fff;
 }
 
 nav.views {

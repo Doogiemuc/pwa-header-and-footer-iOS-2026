@@ -26,7 +26,7 @@ const contentEl = ref<HTMLElement | null>(null)
 const bar = ref<{ $el: HTMLElement } | null>(null)
 const barEl = computed(() => bar.value?.$el ?? null)
 const { metrics, events, lastEvent, measure } = useViewportMetrics(rectEl, scrollerEl, contentEl, barEl)
-const { mode, barMode, statusBar } = useSettings('inner', measure)
+const { mode, statusBar } = useSettings('inner', measure)
 </script>
 
 <template>
@@ -38,7 +38,6 @@ const { mode, barMode, statusBar } = useSettings('inner', measure)
           view="inner"
           v-model:mode="mode"
           v-model:status-bar="statusBar"
-          v-model:bar-mode="barMode"
           :env="env"
           :metrics="metrics"
           :events="events"
@@ -53,7 +52,7 @@ const { mode, barMode, statusBar } = useSettings('inner', measure)
 
   <AppHeader />
   <ViewSwitch target="page" />
-  <BottomBar v-if="barMode !== 'off'" ref="bar" :metrics="metrics" :bar-mode="barMode" />
+  <BottomBar ref="bar" :metrics="metrics" />
 </template>
 
 <style>

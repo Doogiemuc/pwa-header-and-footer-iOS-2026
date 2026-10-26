@@ -13,20 +13,6 @@ export const HEIGHT_MODES = {
 
 export type HeightMode = keyof typeof HEIGHT_MODES
 
-/** Strategies for the blue bar that must sit exactly on top of the floating Safari controls (default: bottom0). */
-export const BAR_MODES = {
-  bottom0: {
-    label: 'fixed; bottom: 0 (CSS only)',
-    description: 'plain position: fixed; bottom: 0. No JS, placed by the browser itself, so it cannot lag',
-  },
-  dvh: { label: 'top = 100dvh − bar', description: 'CSS, but re-evaluated on the main thread: may lag while the toolbar animates' },
-  js: { label: 'JS visualViewport', description: 'top from visualViewport, written every frame: main thread, may lag' },
-  off: { label: 'off', description: 'no bar' },
-} as const
-export type BarMode = keyof typeof BAR_MODES
-export function isBarMode(value: unknown): value is BarMode {
-  return typeof value === 'string' && value in BAR_MODES
-}
 
 export function isHeightMode(value: unknown): value is HeightMode {
   return typeof value === 'string' && value in HEIGHT_MODES

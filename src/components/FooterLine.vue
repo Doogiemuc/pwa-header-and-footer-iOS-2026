@@ -19,10 +19,6 @@
   z-index: 3;
   pointer-events: none;
 }
-/* No footer: the line marks the bottom edge of the rect instead. */
-html[data-bar='off'] .footer-line {
-  top: calc(100% - 3px);
-}
 .footer-line span {
   position: absolute;
   left: max(6px, var(--sal));

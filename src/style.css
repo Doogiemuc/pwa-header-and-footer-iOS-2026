@@ -55,7 +55,7 @@ body {
 }
 /* A fixed footer covers the bottom of the viewport: reserve its full height (incl. safe-area padding) at the end of the
    scrollable content, otherwise the last content can never be scrolled out from behind it. */
-html:not([data-bar='off']) .content {
+.content {
   padding-bottom: calc(var(--bar-total, var(--sab)) + 12px);
 }
 .content > .panel {

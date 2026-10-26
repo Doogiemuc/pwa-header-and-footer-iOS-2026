@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import type { BarMode, Metrics } from '../composables/useViewportMetrics'
+import type { Metrics } from '../composables/useViewportMetrics'
 
 // Blue bar = where a fixed bottom footer has to sit: directly above the (animated) Safari controls.
 // It also works as a status line: the live numbers show where its bottom edge is compared to the viewport.
-defineProps<{ metrics: Metrics | null; barMode: BarMode }>()
+defineProps<{ metrics: Metrics | null }>()
 </script>
 
 <template>
   <footer class="bottom-bar" aria-hidden="true">
-    <strong>fixed bottom bar (footer) · {{ barMode }}</strong>
+    <strong>fixed bottom bar (footer) · position: fixed; bottom: 0</strong>
     <span v-if="metrics?.bar && metrics.units.dvh != null">
       bar bottom {{ +metrics.bar.bottom.toFixed(1) }}px · 100dvh {{ +metrics.units.dvh.toFixed(1) }}px · innerHeight
       {{ metrics.window.innerHeight }}px
@@ -31,7 +31,10 @@ defineProps<{ metrics: Metrics | null; barMode: BarMode }>()
 
 <style scoped>
 .bottom-bar {
+  /* Plain CSS, placed by the browser: follows the animated Safari toolbar without lag (anything computed in JS or with
+     100dvh runs on the main thread and jumps). */
   position: fixed;
+  bottom: 0;
   left: 0;
   right: 0;
   z-index: 40;
@@ -57,16 +60,4 @@ defineProps<{ metrics: Metrics | null; barMode: BarMode }>()
   border-top: 1px dashed #fff;
 }
 
-/* Strategies for the bar's vertical position (html[data-bar], see BAR_MODES). Only bottom0 is pure CSS placed by
-   the browser; the others run on the main thread and lag while the toolbar animates. */
-html[data-bar='bottom0'] .bottom-bar {
-  bottom: 0;
-}
-html[data-bar='dvh'] .bottom-bar {
-  top: calc(100vh - var(--bar-total)); /* fallback without dvh */
-  top: calc(100dvh - var(--bar-total));
-}
-html[data-bar='js'] .bottom-bar {
-  top: calc(var(--vv-bottom, 100vh) - var(--bar-total));
-}
 </style>

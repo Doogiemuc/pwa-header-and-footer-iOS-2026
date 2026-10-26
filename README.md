@@ -58,9 +58,6 @@ html  { background: #fff; }                          /* canvas colour: see 2.5 *
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 ```
 
-Note: the POC's static `<head>` (`index.html`, `inner.html`) still says `black-translucent`; the owner's device tests used `default`, selected in the
-debug panel (`?sb=default`) before adding the icon. `default` is the tested value.
-
 See `src/style.css`, `src/components/AppHeader.vue`, `src/components/BottomBar.vue` and `src/views/*.vue` for the working code.
 Page background of the POC: `--app-gradient: radial-gradient(120% 70% at 50% 10%, #ffffff 0%, #eef5fc 45%, #dbe8f6 100%)` on `#app`
 (inner page) or `.content` (page scroll; there the document is taller than `#app`, the gradient must sit on the element that spans the whole
@@ -108,6 +105,16 @@ scrollable area). `html` stays white.
 13. **Small iOS details applied in the POC** (known iOS behaviour, not separately tested here): form controls need `font-size` ≥ 16px, otherwise iOS zooms in on focus
     (and `visualViewport.scale` ≠ 1); `-webkit-text-size-adjust: 100%` stops iOS from enlarging text in landscape; touch targets of at least 44px.
 
+14. **On-screen keyboard, Full Page variant: the fixed footer hides behind the keyboard.** **[device]** iOS shrinks only the *visual* viewport
+    (`visualViewport.height` 711 → **378**), not the layout viewport (`innerHeight` / `100dvh` 711 → **748**, Safari also collapses its toolbar
+    into the small URL bar above the keyboard). `position: fixed; bottom: 0` stays at the bottom of the layout viewport (748), i.e. behind the
+    keyboard. While the page scrolls, the 378px visible window moves inside the layout viewport and the footer only shows when that window reaches
+    the bottom; then it sticks above the keyboard's URL bar, scrolling up moves it down again (looks like `position: sticky` at the bottom).
+    **The Inner DIV variant works fine with the keyboard.** **[device]**
+15. **`screen.width/height` are not the real values in a private tab.** **[device]** In a private Safari tab the iPhone 16 Pro reported `screen` =
+    414×896 (an iPhone 11 Pro Max size) with a 402px wide viewport; a normal tab reported 402×874. Most likely Safari's fingerprinting
+    protection in private browsing (not confirmed). Do not use `screen.*` for layout; use `innerHeight`, `visualViewport` and the viewport units.
+
 ## 3. Home Screen app (standalone)
 
 **iOS 27 adds a rather large blur at the top edge of installed web apps.** The system draws a translucent veil over the top of the page (not the page itself):
@@ -140,7 +147,7 @@ Results on the device:
 ## 4. Still to test
 
 - [ ] Landscape (side insets, footer, `innerHeight`); iPad.
-- [ ] The on-screen keyboard (an input in the content or footer): what the fixed header/footer and `visualViewport` do while it is open. The POC has no inputs.
+- [ ] The on-screen keyboard in the Home Screen app, and with the input in the footer (test input: below the Mobile HTML tags box).
 
 ## 5. Run and test
 
@@ -171,7 +178,7 @@ insets) · Home Screen app (Share → *Add to Home Screen*, keep *Open as Web Ap
 
 ## 6. The debug tooling
 
-Settings live in the URL (so *Reload* keeps them, there is no reload button in a Home Screen app): `?h=<height mode>&sb=<status bar style>&bar=<footer strategy>`.
+Settings live in the URL (so *Reload* keeps them, there is no reload button in a Home Screen app): `?h=<height mode>&sb=<status bar style>` (default `default`).
 *Copy JSON* copies all measurements for comparing devices. A round button at the top right (100px below the top) switches between the two pages.
 
 * **Verdict:** rect height vs `innerHeight` / `visualViewport.height` / screen height (in the Home Screen app the screen height), rect top/bottom,
@@ -181,7 +188,8 @@ Settings live in the URL (so *Reload* keeps them, there is no reload button in a
   footer where the safe-area padding starts (the footer's 3rd text line shows the measured inset); dashed black lines for the insets; a black ruler in the right gutter
   (ticks every 10 % of the rect height). The rectangle itself has no colour.
 * **Height modes** (select): `dvh` (default), `svh`, `lvh`, `vh`, `percent`, `fill` (`-webkit-fill-available`), `js` (`innerHeight`), `fixed` (inner page only).
-  **Footer strategies** (`?bar=`): `bottom0` (default), `dvh`, `js`, `off`. In the Home Screen app the default `dvh` height mode is overridden by `100lvh`.
+  The footer is always plain `position: fixed; bottom: 0`. In the Home Screen app the default `dvh` height mode is overridden by `100lvh`.
+* **Test input** (below the Mobile HTML tags box): an empty text field to test the on-screen keyboard while scrolling.
 * Measured live (events + 500 ms polling): `screen.*`, `devicePixelRatio`, `window.inner/outer*`, `documentElement.client*`, `visualViewport.*`, probe elements for
   `100vh/svh/lvh/dvh`, `env(safe-area-inset-*)` and `-max-inset-*`, media queries, `prefers-reduced-transparency`, scroll state, an event counter.
 

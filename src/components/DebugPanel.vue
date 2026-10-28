@@ -106,6 +106,22 @@ function mobileTagRows(standalone: boolean | undefined): Row[] {
   ]
 }
 
+/**
+ * Heuristic: is Safari's address bar at the top or at the bottom? There is no API for it. The difference between the large and
+ * the small viewport tells it: bottom bar ≈ 37px (only the address bar collapses into the compact bar), top bar ≈ 222px (the top
+ * address bar AND the bottom navigation bar can disappear, 100lvh = the whole screen). Measured on one iPhone 16 Pro in portrait.
+ */
+const ADDRESS_BAR_TOP_THRESHOLD = 100 // px of (100lvh - 100svh)
+function addressBarGuess(e: EnvInfo, m: Metrics): string {
+  if (!e.isIOS) return 'n/a (not iOS)'
+  if (e.isHomeScreenApp) return 'none (Home Screen app)'
+  const { lvh, svh } = m.units
+  if (lvh == null || svh == null) return 'unknown (no lvh/svh)'
+  const diff = lvh - svh
+  const where = diff > ADDRESS_BAR_TOP_THRESHOLD ? 'top' : diff > TOLERANCE ? 'bottom' : 'no collapsing bars'
+  return `${where} (heuristic: lvh − svh = ${px(diff)})`
+}
+
 const sections = computed<Section[]>(() => {
   const m = props.metrics
   const e = props.env
@@ -145,6 +161,7 @@ const sections = computed<Section[]>(() => {
           value: vv ? `${+vv.scale.toFixed(3)}${vv.scale !== 1 ? ' (zoomed!)' : ''}` : 'n/a',
           status: vv && vv.scale !== 1 ? 'bad' : undefined,
         },
+        { label: 'Safari address bar', value: addressBarGuess(e, m) },
       ],
     },
     {

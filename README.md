@@ -115,6 +115,12 @@ scrollable area). `html` stays white.
     414×896 (an iPhone 11 Pro Max size) with a 402px wide viewport; a normal tab reported 402×874. Most likely Safari's fingerprinting
     protection in private browsing (not confirmed). Do not use `screen.*` for layout; use `innerHeight`, `visualViewport` and the viewport units.
 
+16. **Safari's address bar can be at the bottom (default) or at the top** (Settings → Apps → Safari → Tabs). There is no API for it; the difference
+    `100lvh − 100svh` tells it: **bottom ≈ 37px** (only the address bar collapses into the compact bar; `innerHeight` 711, `lvh` 748), **top ≈ 222px**
+    (the top address bar and the floating bottom navigation bar can both disappear; `innerHeight` 652, `lvh` 874 = the whole screen). **[device]** (one
+    iPhone 16 Pro, portrait, Inner DIV page; a threshold of ~100px is an estimate). The Summary box shows the guess ("Safari address bar"). With
+    `100dvh` the layout itself needs no detection: the container is 711 or 652px and the footer's `bottom: 0` sits at its bottom.
+
 ## 3. Home Screen app (standalone)
 
 **iOS 27 adds a rather large blur at the top edge of installed web apps.** The system draws a translucent veil over the top of the page (not the page itself):
@@ -183,7 +189,7 @@ Settings live in the URL (so *Reload* keeps them, there is no reload button in a
 
 * **Verdict:** rect height vs `innerHeight` / `visualViewport.height` / screen height (in the Home Screen app the screen height), rect top/bottom,
   document scroll range, content ≥ 200 % (it grows when the debug panel is taller), a "viewport vs screen" row that shows the stale launch viewport.
-* **Summary** (browser, iOS major, display-mode, scroll position, pinch-zoom scale) and **Mobile HTML tags** (live values of the `<head>` tags, checked against Apple's page).
+* **Summary** (browser, iOS major, display-mode, scroll position, pinch-zoom scale, Safari address bar top/bottom guess) and **Mobile HTML tags** (live values of the `<head>` tags, checked against Apple's page).
 * **Yellow lines:** top/bottom edge of the rectangle; a yellow line "footer top at scroll 0" on the footer's top edge before scrolling; a dashed white line inside the
   footer where the safe-area padding starts (the footer's 3rd text line shows the measured inset); dashed black lines for the insets; a black ruler in the right gutter
   (ticks every 10 % of the rect height). The rectangle itself has no colour.
